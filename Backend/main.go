@@ -1,7 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"Backend/Scanner"
+)
 
 func main() {
-	fmt.Println("Menu de Apis")
+	Scanner.Scan()
 }

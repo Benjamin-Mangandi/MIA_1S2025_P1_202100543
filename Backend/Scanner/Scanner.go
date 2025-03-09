@@ -54,7 +54,7 @@ func Scan() {
 
 		// Llamar a la función para analizar el comando
 		AnalyzeCommand(command, params)
-		//mkdisk -size=1024 -unit=M -fit=BF -path="/home/benjamin/discos/disk1.mia"
+
 	}
 }
 
@@ -64,6 +64,10 @@ func AnalyzeCommand(command string, params string) {
 		Commandmkdisk(params)
 	case strings.EqualFold(command, "fdisk"):
 		Commandfdisk(params)
+	case strings.EqualFold(command, "rmdisk"):
+		CommandRmDisk(params)
+	case strings.EqualFold(command, "mounted"):
+		Commandmounted(params)
 	case strings.EqualFold(command, "mount"):
 		Commandmount(params)
 	default:
@@ -75,144 +79,167 @@ func AnalyzeCommand(command string, params string) {
 func Commandmkdisk(params string) {
 	// Definir flags con valores predeterminados
 	fs := flag.NewFlagSet("mkdisk", flag.ContinueOnError)
-	size := fs.Int("size", 0, "Tamaño del disco")
 	fit := fs.String("fit", "ff", "Tipo de ajuste (bf, ff, wf)")
 	unit := fs.String("unit", "m", "Unidad de tamaño (k, m)")
 	path := fs.String("path", "", "Ruta donde se creará el disco")
+	size := fs.Int("size", 0, "Tamaño del disco")
 
-	_ = fs.Parse([]string{})
-
-	// Extraer parámetros de la entrada del usuario
+	fs.Parse(os.Args[1:])
 	matches := regex.FindAllStringSubmatch(params, -1)
 
 	for _, match := range matches {
-		flagName := match[1]                     // Nombre del flag
-		flagValue := strings.Trim(match[2], `"`) // Valor del flag sin comillas
-
-		// Normalizar los valores en minúsculas cuando corresponda
-		if flagName != "path" {
-			flagValue = strings.ToLower(flagValue)
-		}
-
-		// Intentar asignar el valor al flag correspondiente
-		if err := fs.Set(flagName, flagValue); err != nil {
-			fmt.Printf("Error: Flag desconocida '%s'\n", flagName)
-		}
+		flagName := strings.ToLower(match[1])     // Convertir nombre a minúsculas
+		flagValue := strings.ToLower(match[2])    // Convertir valor a minúsculas si aplica
+		flagValue = strings.Trim(flagValue, "\"") // Eliminar comillas
+		fs.Set(flagName, flagValue)
 	}
-
 	// Validaciones
 	if *size <= 0 {
 		fmt.Println("Error: El tamaño debe ser mayor a 0")
 		return
 	}
 
-	if *fit != "bf" && *fit != "ff" && *fit != "wf" {
-		fmt.Println("Error: El ajuste debe ser 'bf', 'ff' o 'wf'")
-		return
-	}
-
-	if *unit != "k" && *unit != "m" {
-		fmt.Println("Error: La unidad debe ser 'k' o 'm'")
-		return
-	}
-
 	if *path == "" {
-		fmt.Println("Error: Se requiere una ruta válida")
+		fmt.Println("Error: Se requiere especificar un path")
+		return
+	}
+
+	// Validar unidad
+	if *unit != "k" && *unit != "m" {
+		fmt.Println("Error: Unidad inválida, debe ser 'k' o 'm'")
 		return
 	}
 
 	// Llamar a la función para crear el disco
 	DiskManager.Mkdisk(*size, *fit, *unit, *path)
+	//mkdisk -Size=3000 -unit=K -path=/home/benjamin/discos/Disco1.mia
+	//mkdisk -path=/home/benjamin/discos/Disco2.mia -Unit=K -size=3000
+	//mkdisk -size=5 -unit=M -path="/home/benjamin/discos/Disco3.mia"​
+	//mkdisk -size=10 -Path="/home/benjamin/discos/Disco4.mia"
+	//mkdisk -size=1024 -unit=M -fit=BF -path="/home/benjamin/discos/DiscoDefinitivo.mia"
 }
 
 func Commandfdisk(input string) {
-	// Definir flags
-	fs := flag.NewFlagSet("fdisk", flag.ExitOnError)
+	// Definir flags con valores predeterminados
+	fs := flag.NewFlagSet("fdisk", flag.ContinueOnError)
 	size := fs.Int("size", 0, "Tamaño")
 	path := fs.String("path", "", "Ruta")
-	//name := fs.String("name", "", "Nombre")
-	unit := fs.String("unit", "m", "Unidad")
-	type_ := fs.String("type", "p", "Tipo")
-	fit := fs.String("fit", "", "Ajuste") // Dejar fit vacío por defecto
+	name := fs.String("name", "", "Nombre")
+	unit := fs.String("unit", "k", "Unidad (b/k/m)")
+	type_ := fs.String("type", "p", "Tipo (p/e/l)")
+	fit := fs.String("fit", "wf", "Ajuste (bf/ff/wf)")
 
-	// Parsear los flags
-	fs.Parse(os.Args[1:])
-
-	// Encontrar los flags en el input
+	// Expresión regular para capturar los flags en el input
 	matches := regex.FindAllStringSubmatch(input, -1)
 
-	// Procesar el input
+	// Mapas para validaciones rápidas
+	validUnits := map[string]bool{"b": true, "k": true, "m": true}
+	validTypes := map[string]bool{"p": true, "e": true, "l": true}
+	validFits := map[string]bool{"bf": true, "ff": true, "wf": true}
+
+	// Procesar los flags extraídos
 	for _, match := range matches {
-		flagName := match[1]
-		flagValue := strings.ToLower(match[2])
+		flagName := strings.ToLower(match[1])     // Convertir nombre a minúsculas
+		flagValue := strings.ToLower(match[2])    // Convertir valor a minúsculas si aplica
+		flagValue = strings.Trim(flagValue, "\"") // Eliminar comillas
 
-		flagValue = strings.Trim(flagValue, "\"")
-
-		switch flagName {
-		case "size", "fit", "unit", "path", "name", "type":
-			fs.Set(flagName, flagValue)
-		default:
-			fmt.Println("Error: Flag not found")
+		// Intentar asignar el valor al flag correspondiente
+		if err := fs.Set(flagName, flagValue); err != nil {
+			fmt.Printf("Advertencia: Flag desconocido '%s'\n", flagName)
 		}
 	}
 
-	// Validaciones
+	// Validaciones de parámetros
 	if *size <= 0 {
-		fmt.Println("Error: Size must be greater than 0")
+		fmt.Println("Error: El tamaño debe ser mayor a 0")
 		return
 	}
-
 	if *path == "" {
-		fmt.Println("Error: Path is required")
+		fmt.Println("Error: Se requiere la ruta del archivo")
+		return
+	}
+	if !validUnits[*unit] {
+		fmt.Println("Error: Unidad inválida, debe ser 'b', 'k' o 'm'")
+		return
+	}
+	if !validTypes[*type_] {
+		fmt.Println("Error: Tipo inválido, debe ser 'p' (primaria), 'e' (extendida) o 'l' (logica)")
+		return
+	}
+	if !validFits[*fit] {
+		fmt.Println("Errora: Ajuste inválido, debe ser 'bf', 'ff' o 'wf'")
 		return
 	}
 
-	// Si no se proporcionó un fit, usar el valor predeterminado "w"
-	if *fit == "" {
-		*fit = "w"
+	// Llamar a la función Fdisk con los valores procesados
+	DiskManager.Fdisk(*size, *path, *name, *unit, *type_, *fit)
+	//fdisk -size=600 -path="/home/benjamin/discos/Disco1.mia" -name=Particion1
+	//fdisk -Size=2800 -path=/home/benjamin/discos/Disco1.mia -name=Particion2
+	//fdisk -type=E -path=/home/benjamin/discos/Disco1.mia -Unit=K -name=Particion3 -size=300
+	//fdisk -size=1 -type=L -unit=M -fit=BF -path=/home/benjamin/discos/Disco1.mia -name="Particion4"
+	//fdisk -path=/home/benjamin/discos/Disco1.mia -name=Part3 -Unit=K -size=200
+}
+
+func CommandRmDisk(input string) {
+	// Definir flags
+	fs := flag.NewFlagSet("rmdisk", flag.ExitOnError)
+	path := fs.String("path", "", "Ruta del disco a eliminar")
+
+	// Buscar y extraer los flags del input
+	args := strings.Fields(input)
+	for i := 0; i < len(args); i++ {
+		if strings.HasPrefix(args[i], "-path=") {
+			*path = strings.TrimPrefix(args[i], "-path=")
+			*path = strings.Trim(*path, "\"") // Eliminar comillas si las hay
+		}
 	}
 
-	// Validar fit (b/w/f)
-	if *fit != "b" && *fit != "f" && *fit != "w" {
-		fmt.Println("Error: Fit must be 'b', 'f', or 'w'")
+	// Validar si se proporcionó el path
+	if *path == "" {
+		fmt.Println("Error: El parámetro -path es obligatorio.")
 		return
 	}
 
-	if *unit != "k" && *unit != "m" {
-		fmt.Println("Error: Unit must be 'k' or 'm'")
-		return
-	}
-
-	if *type_ != "p" && *type_ != "e" && *type_ != "l" {
-		fmt.Println("Error: Type must be 'p', 'e', or 'l'")
-		return
-	}
-
-	// Llamar a la función
-	//DiskManagement.Fdisk(*size, *path, *name, *unit, *type_, *fit)
+	// Llamar a la función en DiskManager para eliminar el disco
+	DiskManager.RmDisk(*path)
+	//rmdisk -path="/home/benjamin/discos/disco1.mia"
 }
 
 func Commandmount(params string) {
 	fs := flag.NewFlagSet("mount", flag.ExitOnError)
-	path := fs.String("path", "", "Ruta")
+	path := fs.String("path", "", "Ruta del disco")
 	name := fs.String("name", "", "Nombre de la partición")
 
-	fs.Parse(os.Args[1:])
+	// Extraer los parámetros usando regex
 	matches := regex.FindAllStringSubmatch(params, -1)
-
 	for _, match := range matches {
-		flagName := match[1]
-		flagValue := strings.ToLower(match[2]) // Convertir todo a minúsculas
-		flagValue = strings.Trim(flagValue, "\"")
-		fs.Set(flagName, flagValue)
+		flagName := strings.ToLower(match[1])     // Convertir nombre del flag a minúsculas
+		flagValue := strings.Trim(match[2], "\"") // Eliminar comillas
+
+		if err := fs.Set(flagName, flagValue); err != nil {
+			fmt.Printf("Error: No se pudo establecer el flag '%s'\n", flagName)
+			return
+		}
 	}
 
+	// Validación de campos obligatorios
 	if *path == "" || *name == "" {
-		fmt.Println("Error: Path y Name son obligatorios")
+		fmt.Println("Error: Los parámetros '-path' y '-name' son obligatorios")
 		return
 	}
 
-	// Convertir el nombre a minúsculas antes de pasarlo al Mount
-	//lowercaseName := strings.ToLower(*name)
-	//DiskManagement.Mount(*path, lowercaseName)
+	// Llamar a la función Mount con el nombre en minúsculas
+	DiskManager.Mount(*path, strings.ToLower(*name))
+	//mount -path="/home/benjamin/discos/disco1.mia" -name=Particion1
+}
+
+func Commandmounted(params string) {
+	// Verificar que no se pasen parámetros
+	if strings.TrimSpace(params) != "" {
+		fmt.Println("Error: El comando 'mounted' no acepta parámetros")
+		return
+	}
+	// Llamar a la función para imprimir las particiones montadas
+	DiskManager.PrintMountedPartitions()
+	//mounted
 }

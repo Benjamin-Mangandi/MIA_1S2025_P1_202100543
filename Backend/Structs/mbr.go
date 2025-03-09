@@ -5,11 +5,11 @@ import (
 )
 
 type MBR struct {
-	Size         int32
-	CreationDate [16]byte
-	Signature    int32
-	Fit          byte
-	Partitions   [4]Partition
+	Size         int32        //Tamaño del disco
+	CreationDate [16]byte     //Fecha de creacion del disco
+	Signature    int32        //Numero random que lo identifica
+	Fit          byte         //Tipo de ajuste: B, F o w
+	Partitions   [4]Partition //4 Posibles Particiones
 }
 
 func PrintMBR(data MBR) {

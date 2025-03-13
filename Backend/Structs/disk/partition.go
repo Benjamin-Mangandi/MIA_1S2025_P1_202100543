@@ -1,10 +1,10 @@
-package Structs
+package Disk
 
 import "fmt"
 
 type Partition struct {
 	Status      byte     // '0' o '1' según si está montada
-	Type        byte     // 'P' (Primaria) o 'E' (Extendida)
+	Type        byte     // 'P' (Primaria), 'E' (Extendida) o 'L' (Logica)
 	Fit         byte     // 'B', 'F' o 'W' (Best, First, Worst)
 	Start       int32    // Byte donde inicia la partición
 	Size        int32    // Tamaño total de la partición en bytes

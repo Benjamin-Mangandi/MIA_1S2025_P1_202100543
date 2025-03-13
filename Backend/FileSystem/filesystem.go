@@ -3,7 +3,7 @@ package FileSystem
 import (
 	"Backend/DiskManager"
 	globals "Backend/Globals"
-	"Backend/Structs"
+	Disk "Backend/Structs/disk"
 	Ext2 "Backend/Structs/ext2"
 	"Backend/Utilities"
 	"bytes"
@@ -34,13 +34,13 @@ func Mkfs(id string, type_ string, fs_ string) {
 	defer file.Close() // Asegura que el archivo se cierre al finalizar
 
 	// Leer el MBR
-	var TempMBR Structs.MBR
+	var TempMBR Disk.MBR
 	if err := Utilities.ReadObject(file, &TempMBR, 0); err != nil {
 		fmt.Println("Error al leer el MBR:", err)
 		return
 	}
 
-	Structs.PrintMBR(TempMBR)
+	Disk.PrintMBR(TempMBR)
 
 	// Buscar la partición dentro del MBR
 	index := findPartitionIndex(TempMBR, id)
@@ -49,7 +49,7 @@ func Mkfs(id string, type_ string, fs_ string) {
 		return
 	}
 
-	Structs.PrintPartition(TempMBR.Partitions[index])
+	Disk.PrintPartition(TempMBR.Partitions[index])
 
 	// Validar tipo de sistema de archivos
 	if fs_ != "2fs" {
@@ -71,7 +71,7 @@ func Mkfs(id string, type_ string, fs_ string) {
 }
 
 // Busca una partición montada por ID
-func findMountedPartition(id string) (Structs.MountedPartition, bool) {
+func findMountedPartition(id string) (Disk.MountedPartition, bool) {
 	for _, partitions := range DiskManager.GetMountedPartitions() {
 		for _, partition := range partitions {
 			if partition.ID == id {
@@ -79,15 +79,15 @@ func findMountedPartition(id string) (Structs.MountedPartition, bool) {
 					return partition, true
 				}
 				fmt.Println("Error: La partición aún no está montada.")
-				return Structs.MountedPartition{}, false
+				return Disk.MountedPartition{}, false
 			}
 		}
 	}
-	return Structs.MountedPartition{}, false
+	return Disk.MountedPartition{}, false
 }
 
 // Encuentra el índice de la partición en el MBR
-func findPartitionIndex(mbr Structs.MBR, id string) int {
+func findPartitionIndex(mbr Disk.MBR, id string) int {
 	for i := 0; i < 4; i++ {
 		if mbr.Partitions[i].Size != 0 && strings.Contains(string(mbr.Partitions[i].Id[:]), id) {
 			return i
@@ -97,14 +97,14 @@ func findPartitionIndex(mbr Structs.MBR, id string) int {
 }
 
 // Calcula la cantidad de inodos basada en el tamaño de la partición
-func calculateInodes(partition Structs.Partition) int32 {
+func calculateInodes(partition Disk.Partition) int32 {
 	numerador := partition.Size - int32(binary.Size(Ext2.Superblock{}))
 	denominador := int32(4 + binary.Size(Ext2.Inode{}) + 3*binary.Size(Ext2.Fileblock{}))
 	return numerador / denominador
 }
 
 // Crea y configura el superbloque para EXT2
-func createSuperblock(n int32, partition Structs.Partition) Ext2.Superblock {
+func createSuperblock(n int32, partition Disk.Partition) Ext2.Superblock {
 	return Ext2.Superblock{
 		S_filesystem_type:   2, // EXT2
 		S_inodes_count:      n,
@@ -122,7 +122,7 @@ func createSuperblock(n int32, partition Structs.Partition) Ext2.Superblock {
 	}
 }
 
-func create_ext2(n int32, partition Structs.Partition, newSuperblock Ext2.Superblock, date string, file *os.File) {
+func create_ext2(n int32, partition Disk.Partition, newSuperblock Ext2.Superblock, date string, file *os.File) {
 	fmt.Println("====== Start CREATE EXT2 ======")
 	fmt.Println("INODOS:", n)
 

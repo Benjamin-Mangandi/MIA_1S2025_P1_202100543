@@ -1,11 +1,11 @@
-package Structs
+package Disk
 
 import (
 	"fmt"
 	"strings"
 )
 
-// Estructura del EBR según la imagen
+// Estructura del EBR
 type EBR struct {
 	PartMount byte     // Indica si la partición está montada
 	PartFit   byte     // Ajuste de la partición (B, F o W)

@@ -1,4 +1,4 @@
-package Structs
+package Disk
 
 import (
 	"fmt"

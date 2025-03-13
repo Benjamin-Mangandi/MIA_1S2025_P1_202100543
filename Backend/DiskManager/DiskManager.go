@@ -2,7 +2,7 @@ package DiskManager
 
 import (
 	"Backend/Globals"
-	"Backend/Structs"
+	Disk "Backend/Structs/disk"
 	"Backend/Utilities"
 	"bytes"
 	"encoding/binary"
@@ -75,7 +75,7 @@ func Mkdisk(size int, fit string, unit string, path string) {
 	}
 
 	// Crear estructura MBR
-	var newMBR Structs.MBR
+	var newMBR Disk.MBR
 	newMBR.Size = int32(sizeInBytes)
 	newMBR.Signature = rand.Int31() // Número aleatorio único para el disco
 	newMBR.Fit = fit[0]             // Almacenar solo el primer carácter del fit
@@ -91,14 +91,14 @@ func Mkdisk(size int, fit string, unit string, path string) {
 	}
 
 	// Leer el MBR para verificar su correcta escritura
-	var tempMBR Structs.MBR
+	var tempMBR Disk.MBR
 	if err := Utilities.ReadObject(file, &tempMBR, 0); err != nil {
 		fmt.Println("Error al leer el MBR:", err)
 		return
 	}
 
 	// Imprimir el MBR leído
-	Structs.PrintMBR(tempMBR)
+	Disk.PrintMBR(tempMBR)
 
 	fmt.Println("====== FIN MKDISK ======")
 }
@@ -145,7 +145,7 @@ func Fdisk(size int, path string, name string, unit string, type_ string, fit st
 	}
 
 	// Leer el MBR
-	var mbr Structs.MBR
+	var mbr Disk.MBR
 	if err := Utilities.ReadObject(file, &mbr, 0); err != nil {
 		fmt.Println("Error al leer el MBR:", err)
 		return
@@ -191,7 +191,7 @@ func convertSize(size int, unit string) int {
 }
 
 // countPartitions - Cuenta el número de particiones y el espacio usado
-func countPartitions(mbr Structs.MBR) (primary, extended int, usedSpace int32, total int) {
+func countPartitions(mbr Disk.MBR) (primary, extended int, usedSpace int32, total int) {
 	for i := 0; i < 4; i++ {
 		if mbr.Partitions[i].Size != 0 {
 			total++
@@ -206,7 +206,7 @@ func countPartitions(mbr Structs.MBR) (primary, extended int, usedSpace int32, t
 	return
 }
 
-func partitionExists(mbr Structs.MBR, file *os.File, name string) bool {
+func partitionExists(mbr Disk.MBR, file *os.File, name string) bool {
 	for i := 0; i < 4; i++ {
 		// Eliminar caracteres nulos y espacios en blanco del nombre de la partición
 		existingName := string(bytes.TrimRight(mbr.Partitions[i].Name[:], "\x00"))
@@ -229,8 +229,8 @@ func partitionExists(mbr Structs.MBR, file *os.File, name string) bool {
 	return false
 }
 
-func logicalPartitionExists(file *os.File, extendedPartition Structs.Partition, name string) bool {
-	var ebr Structs.EBR
+func logicalPartitionExists(file *os.File, extendedPartition Disk.Partition, name string) bool {
+	var ebr Disk.EBR
 	pos := extendedPartition.Start
 
 	for pos != -1 {
@@ -260,7 +260,7 @@ func logicalPartitionExists(file *os.File, extendedPartition Structs.Partition, 
 }
 
 // Valida la estructura de particiones antes de crear una nueva
-func validatePartitionStructure(type_ string, size int, mbr Structs.MBR, primary, extended int, usedSpace int32, total int) error {
+func validatePartitionStructure(type_ string, size int, mbr Disk.MBR, primary, extended int, usedSpace int32, total int) error {
 	if total >= 4 && type_ != "l" {
 		return fmt.Errorf("no se pueden crear más de 4 particiones primarias o extendidas")
 	}
@@ -276,7 +276,7 @@ func validatePartitionStructure(type_ string, size int, mbr Structs.MBR, primary
 	return nil
 }
 
-func createPartition(file *os.File, mbr *Structs.MBR, size int, name, type_, fit string, totalPartitions int) {
+func createPartition(file *os.File, mbr *Disk.MBR, size int, name, type_, fit string, totalPartitions int) {
 	startPos := int32(binary.Size(*mbr))
 	if totalPartitions > 0 {
 		startPos = mbr.Partitions[totalPartitions-1].Start + mbr.Partitions[totalPartitions-1].Size
@@ -286,7 +286,7 @@ func createPartition(file *os.File, mbr *Structs.MBR, size int, name, type_, fit
 	if type_ != "l" {
 		for i := 0; i < 4; i++ {
 			if mbr.Partitions[i].Size == 0 {
-				mbr.Partitions[i] = Structs.Partition{
+				mbr.Partitions[i] = Disk.Partition{
 					Size:   int32(size),
 					Start:  startPos,
 					Type:   type_[0],
@@ -301,7 +301,7 @@ func createPartition(file *os.File, mbr *Structs.MBR, size int, name, type_, fit
 				if type_ == "e" {
 					initEBR(file, startPos)
 				}
-				Structs.PrintPartition(mbr.Partitions[i])
+				Disk.PrintPartition(mbr.Partitions[i])
 				return
 			}
 		}
@@ -321,8 +321,8 @@ func createPartition(file *os.File, mbr *Structs.MBR, size int, name, type_, fit
 }
 
 // Crea una nueva partición lógica dentro de una extendida
-func createLogicalPartition(file *os.File, extendedPartition Structs.Partition, size int, name, fit string) {
-	var ebr Structs.EBR
+func createLogicalPartition(file *os.File, extendedPartition Disk.Partition, size int, name, fit string) {
+	var ebr Disk.EBR
 	pos := extendedPartition.Start
 	prevPos := int32(-1)
 
@@ -340,7 +340,7 @@ func createLogicalPartition(file *os.File, extendedPartition Structs.Partition, 
 	}
 
 	// Crear nueva partición lógica
-	newEBR := Structs.EBR{
+	newEBR := Disk.EBR{
 		PartFit:   fit[0],
 		PartStart: pos + int32(binary.Size(ebr)),
 		PartSize:  int32(size),
@@ -362,7 +362,7 @@ func createLogicalPartition(file *os.File, extendedPartition Structs.Partition, 
 
 // Inicializa un EBR en una partición extendida
 func initEBR(file *os.File, start int32) {
-	ebr := Structs.EBR{
+	ebr := Disk.EBR{
 		PartFit:   'b',
 		PartStart: start,
 		PartSize:  0,
@@ -401,11 +401,11 @@ func PrintMountedPartitions() {
 }
 
 // Obtener todas las particiones montadas
-func GetMountedPartitions() map[string][]Structs.MountedPartition {
+func GetMountedPartitions() map[string][]Disk.MountedPartition {
 	return Globals.MountedPartitions
 }
 
-func GetMountedPartitionByID(id string) Structs.MountedPartition {
+func GetMountedPartitionByID(id string) Disk.MountedPartition {
 	for _, partitions := range Globals.MountedPartitions { // Itera sobre los valores del mapa
 		for _, partition := range partitions { // Itera sobre la lista de particiones
 			if partition.ID == id {
@@ -413,7 +413,7 @@ func GetMountedPartitionByID(id string) Structs.MountedPartition {
 			}
 		}
 	}
-	return Structs.MountedPartition{} // Devuelve un objeto vacío si no se encuentra
+	return Disk.MountedPartition{} // Devuelve un objeto vacío si no se encuentra
 }
 
 // Montar una partición en un disco
@@ -427,7 +427,7 @@ func Mount(path string, name string) {
 	defer file.Close()
 
 	// Leer el MBR
-	var TempMBR Structs.MBR
+	var TempMBR Disk.MBR
 	if err := Utilities.ReadObject(file, &TempMBR, 0); err != nil {
 		fmt.Println("Error: No se pudo leer el MBR desde el archivo")
 		return
@@ -439,7 +439,7 @@ func Mount(path string, name string) {
 	nameBytes := [16]byte{}
 	copy(nameBytes[:], []byte(name))
 	partitionFound := false
-	var partition Structs.Partition
+	var partition Disk.Partition
 	var partitionIndex int
 
 	for i := 0; i < 4; i++ {
@@ -490,7 +490,7 @@ func Mount(path string, name string) {
 	copy(partition.Id[:], partitionID)
 	TempMBR.Partitions[partitionIndex] = partition
 
-	Globals.MountedPartitions[diskID] = append(Globals.MountedPartitions[diskID], Structs.MountedPartition{
+	Globals.MountedPartitions[diskID] = append(Globals.MountedPartitions[diskID], Disk.MountedPartition{
 		Path:   path,
 		Name:   name,
 		ID:     partitionID,
@@ -506,5 +506,5 @@ func Mount(path string, name string) {
 
 	fmt.Printf("Partición montada con ID: %s\n", partitionID)
 	fmt.Println("\nMBR actualizado:")
-	Structs.PrintMBR(TempMBR)
+	Disk.PrintMBR(TempMBR)
 }

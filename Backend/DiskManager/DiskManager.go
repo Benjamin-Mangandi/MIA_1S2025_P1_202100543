@@ -1,6 +1,7 @@
 package DiskManager
 
 import (
+	"Backend/Globals"
 	"Backend/Structs"
 	"Backend/Utilities"
 	"bytes"
@@ -11,8 +12,6 @@ import (
 	"strings"
 	"time"
 )
-
-var mountedPartitions = make(map[string][]Structs.MountedPartition)
 
 // Mkdisk crea un nuevo disco binario con el formato EXT2 simulado
 func Mkdisk(size int, fit string, unit string, path string) {
@@ -373,7 +372,7 @@ func initEBR(file *os.File, start int32) {
 }
 
 func getLastDiskID() string {
-	for diskID := range mountedPartitions {
+	for diskID := range Globals.MountedPartitions {
 		return diskID // Devuelve el primer encontrado
 	}
 	return "" // Si no hay discos montados
@@ -386,12 +385,12 @@ func generateDiskID(path string) string {
 func PrintMountedPartitions() {
 	fmt.Println("Particiones montadas:")
 
-	if len(mountedPartitions) == 0 {
+	if len(Globals.MountedPartitions) == 0 {
 		fmt.Println("No hay particiones montadas.")
 		return
 	}
 
-	for diskID, partitions := range mountedPartitions {
+	for diskID, partitions := range Globals.MountedPartitions {
 		fmt.Printf("Disco ID: %s\n", diskID)
 		for _, partition := range partitions {
 			fmt.Printf(" - Partición Name: %s, ID: %s, Path: %s, Status: %c\n",
@@ -403,7 +402,18 @@ func PrintMountedPartitions() {
 
 // Obtener todas las particiones montadas
 func GetMountedPartitions() map[string][]Structs.MountedPartition {
-	return mountedPartitions
+	return Globals.MountedPartitions
+}
+
+func GetMountedPartitionByID(id string) Structs.MountedPartition {
+	for _, partitions := range Globals.MountedPartitions { // Itera sobre los valores del mapa
+		for _, partition := range partitions { // Itera sobre la lista de particiones
+			if partition.ID == id {
+				return partition
+			}
+		}
+	}
+	return Structs.MountedPartition{} // Devuelve un objeto vacío si no se encuentra
 }
 
 // Montar una partición en un disco
@@ -454,7 +464,7 @@ func Mount(path string, name string) {
 
 	// Generar el ID del disco y verificar si ya tiene particiones montadas
 	diskID := generateDiskID(path)
-	mountedPartitionsInDisk := mountedPartitions[diskID]
+	mountedPartitionsInDisk := Globals.MountedPartitions[diskID]
 
 	// Determinar la letra para el disco
 	var letter byte
@@ -463,7 +473,7 @@ func Mount(path string, name string) {
 		if lastDiskID == "" {
 			letter = 'a'
 		} else {
-			lastLetter := mountedPartitions[lastDiskID][0].ID[len(mountedPartitions[lastDiskID][0].ID)-1]
+			lastLetter := Globals.MountedPartitions[lastDiskID][0].ID[len(Globals.MountedPartitions[lastDiskID][0].ID)-1]
 			letter = lastLetter + 1
 		}
 	} else {
@@ -480,11 +490,12 @@ func Mount(path string, name string) {
 	copy(partition.Id[:], partitionID)
 	TempMBR.Partitions[partitionIndex] = partition
 
-	mountedPartitions[diskID] = append(mountedPartitions[diskID], Structs.MountedPartition{
+	Globals.MountedPartitions[diskID] = append(Globals.MountedPartitions[diskID], Structs.MountedPartition{
 		Path:   path,
 		Name:   name,
 		ID:     partitionID,
 		Status: '1',
+		Start:  partition.Start,
 	})
 
 	// Guardar cambios en el MBR
@@ -496,6 +507,4 @@ func Mount(path string, name string) {
 	fmt.Printf("Partición montada con ID: %s\n", partitionID)
 	fmt.Println("\nMBR actualizado:")
 	Structs.PrintMBR(TempMBR)
-	fmt.Println("\nParticiones montadas:")
-	PrintMountedPartitions()
 }

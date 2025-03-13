@@ -5,4 +5,5 @@ type MountedPartition struct {
 	Name   string
 	ID     string
 	Status byte // 0: no montada, 1: montada
+	Start  int32
 }

@@ -2,6 +2,7 @@ package Scanner
 
 import (
 	"Backend/DiskManager"
+	"Backend/FileSystem"
 	"bufio"
 	"flag"
 	"fmt"
@@ -70,6 +71,12 @@ func AnalyzeCommand(command string, params string) {
 		Commandmounted(params)
 	case strings.EqualFold(command, "mount"):
 		Commandmount(params)
+	case strings.EqualFold(command, "mkfs"):
+		Commandmkfs(params)
+	case strings.EqualFold(command, "login"):
+		CommandLogin(params)
+	case strings.EqualFold(command, "Logout"):
+		CommandLogOut(params)
 	default:
 		fmt.Println("Error: Comando inválido o no encontrado")
 	}
@@ -174,10 +181,10 @@ func Commandfdisk(input string) {
 	// Llamar a la función Fdisk con los valores procesados
 	DiskManager.Fdisk(*size, *path, *name, *unit, *type_, *fit)
 	//fdisk -size=600 -path="/home/benjamin/discos/Disco1.mia" -name=Particion1
-	//fdisk -Size=2800 -path=/home/benjamin/discos/Disco1.mia -name=Particion2
+	//fdisk -Size=2000 -path=/home/benjamin/discos/Disco1.mia -name=Particion2
 	//fdisk -type=E -path=/home/benjamin/discos/Disco1.mia -Unit=K -name=Particion3 -size=300
 	//fdisk -size=1 -type=L -unit=M -fit=BF -path=/home/benjamin/discos/Disco1.mia -name="Particion4"
-	//fdisk -path=/home/benjamin/discos/Disco1.mia -name=Part3 -Unit=K -size=200
+	//fdisk -path=/home/benjamin/discos/Disco2.mia -name=Part3 -Unit=K -size=200
 }
 
 func CommandRmDisk(input string) {
@@ -230,8 +237,13 @@ func Commandmount(params string) {
 
 	// Llamar a la función Mount con el nombre en minúsculas
 	DiskManager.Mount(*path, strings.ToLower(*name))
-	//mount -path="/home/benjamin/discos/disco1.mia" -name=Particion1
+
 }
+
+//mount -path="/home/benjamin/discos/disco1.mia" -name=particion1
+//mount -path="/home/benjamin/discos/disco1.mia" -name=particion2
+//mount -path="/home/benjamin/discos/disco2.mia" -name=part3
+//mount -path="/home/benjamin/discos/disco1.mia" -name=part3
 
 func Commandmounted(params string) {
 	// Verificar que no se pasen parámetros
@@ -242,4 +254,90 @@ func Commandmounted(params string) {
 	// Llamar a la función para imprimir las particiones montadas
 	DiskManager.PrintMountedPartitions()
 	//mounted
+}
+
+func Commandmkfs(params string) {
+	fs := flag.NewFlagSet("mkfs", flag.ExitOnError)
+	id := fs.String("id", "", "Id")
+	type_ := fs.String("type", "full", "Tipo")
+	fs_ := fs.String("fs", "2fs", "Fs")
+
+	// Convertir parámetros a minúsculas para hacer la búsqueda insensible a mayúsculas
+	params = strings.ToLower(params)
+
+	// Expresión regular para extraer parámetros
+	matches := regex.FindAllStringSubmatch(params, -1)
+	validFlags := map[string]*string{"id": id, "type": type_, "fs": fs_}
+
+	for _, match := range matches {
+		flagName, flagValue := strings.ToLower(match[1]), strings.Trim(match[2], "\"")
+
+		if ptr, exists := validFlags[flagName]; exists {
+			*ptr = flagValue
+		} else {
+			fmt.Printf("Error: Flag '%s' no encontrada\n", flagName)
+			return
+		}
+	}
+
+	// Validar que 'id' no esté vacío
+	if *id == "" {
+		fmt.Println("Error: El parámetro 'id' es obligatorio.")
+		return
+	}
+
+	FileSystem.Mkfs(strings.ToLower(*id), *type_, *fs_)
+}
+
+//mkfs -id=431a
+//mkfs -type=full -id=431a
+
+func CommandLogin(params string) {
+	fs := flag.NewFlagSet("login", flag.ExitOnError)
+	user := fs.String("user", "", "Usuario")
+	pass := fs.String("pass", "", "Contraseña")
+	id := fs.String("id", "", "ID Particion")
+
+	matches := regex.FindAllStringSubmatch(params, -1)
+
+	// Mapa para almacenar los valores ingresados por el usuario
+	parsedFlags := make(map[string]string)
+
+	for _, match := range matches {
+		flagName := match[1]                      // Flag tal cual fue escrito
+		flagValue := strings.Trim(match[2], "\"") // Quita comillas si las tiene
+
+		// Asigna el flag en la estructura fs
+		if err := fs.Set(flagName, flagValue); err != nil {
+			fmt.Printf("Error: No se pudo establecer el flag '%s'\n", flagName)
+			return
+		}
+		parsedFlags[flagName] = flagValue // Guardar para depuración
+	}
+
+	// Imprimir parámetros detectados para depuración
+	fmt.Println("====== Parámetros Escaneados ======")
+	for key, value := range parsedFlags {
+		fmt.Printf("%s: %s\n", key, value)
+	}
+	fmt.Println("===================================")
+
+	// Validación de campos obligatorios
+	if *user == "" || *pass == "" || *id == "" {
+		fmt.Println("Error: Los parámetros '-user', '-pass' y '-id' son obligatorios")
+		return
+	}
+	FileSystem.Login(*user, *pass, *id)
+}
+
+//login -user=root -pass=123 -id=431a
+
+func CommandLogOut(params string) {
+	// Verificar que no se pasen parámetros
+	if strings.TrimSpace(params) != "" {
+		fmt.Println("Error: El comando 'mounted' no acepta parámetros")
+		return
+	}
+	// Llamar a la función para imprimir las particiones montadas
+	FileSystem.Logout()
 }

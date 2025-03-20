@@ -3,6 +3,7 @@ package Scanner
 import (
 	"Backend/Scanner/CommandsDisk"
 	"Backend/Scanner/CommandsFileSystem"
+	"Backend/Scanner/CommandsFilesFolders"
 	"Backend/Scanner/CommandsReports"
 	"Backend/Scanner/CommandsUsers"
 	"fmt"
@@ -68,6 +69,12 @@ func AnalyzeCommand(command string, params string) {
 		CommandsUsers.Rmusr(params)
 	case strings.EqualFold(command, "rep"):
 		CommandsReports.Report(params)
+	case strings.EqualFold(command, "chgrp"):
+		CommandsUsers.Chgrp(params)
+	case strings.EqualFold(command, "mkfile"):
+		CommandsFilesFolders.MkFile(params)
+	case strings.EqualFold(command, "mkdir"):
+		CommandsFilesFolders.Mkdir(params)
 	default:
 		fmt.Println("Error: Comando inválido o no encontrado")
 	}

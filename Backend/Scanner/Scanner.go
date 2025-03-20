@@ -3,10 +3,9 @@ package Scanner
 import (
 	"Backend/Scanner/CommandsDisk"
 	"Backend/Scanner/CommandsFileSystem"
+	"Backend/Scanner/CommandsReports"
 	"Backend/Scanner/CommandsUsers"
-	"bufio"
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -25,33 +24,17 @@ func getCommandAndParams(input string) (string, string) {
 }
 
 // Escanea y procesa los comandos ingresados por el usuario
-func Scan() {
-	reader := bufio.NewReader(os.Stdin)
-
-	for {
-		fmt.Println("======================")
-		fmt.Print("Ingrese comando: ")
-
-		// Leer la línea completa de entrada del usuario
-		input, err := reader.ReadString('\n')
-		if err != nil {
-			fmt.Println("Error al leer la entrada:", err)
-			continue
-		}
-
-		// Procesar el comando
-		command, params := getCommandAndParams(input)
-
+func Scan(input string) {
+	lines := strings.Split(input, "\n") // Separar por saltos de línea
+	for _, line := range lines {
+		command, params := getCommandAndParams(line)
 		if command == "" {
 			fmt.Println("Error: No se ingresó un comando válido.")
 			continue
 		}
-
 		fmt.Printf("Comando: %s\nParámetros: %s\n", command, params)
-
 		// Llamar a la función para analizar el comando
 		AnalyzeCommand(command, params)
-
 	}
 }
 
@@ -73,6 +56,18 @@ func AnalyzeCommand(command string, params string) {
 		CommandsUsers.Login(params)
 	case strings.EqualFold(command, "Logout"):
 		CommandsUsers.LogOut(params)
+	case strings.EqualFold(command, "cat"):
+		CommandsFileSystem.Cat(params)
+	case strings.EqualFold(command, "mkgrp"):
+		CommandsUsers.Mkgrp(params)
+	case strings.EqualFold(command, "rmgrp"):
+		CommandsUsers.Rmgrp(params)
+	case strings.EqualFold(command, "mkusr"):
+		CommandsUsers.Mkusr(params)
+	case strings.EqualFold(command, "rmusr"):
+		CommandsUsers.Rmusr(params)
+	case strings.EqualFold(command, "rep"):
+		CommandsReports.Report(params)
 	default:
 		fmt.Println("Error: Comando inválido o no encontrado")
 	}

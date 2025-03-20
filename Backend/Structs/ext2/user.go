@@ -3,12 +3,13 @@ package Ext2
 import "fmt"
 
 type User struct {
-	ID       string
-	Type     string
-	Group    string
-	Name     string
-	Password string
-	Status   bool
+	ID          string
+	Type        string
+	Group       string
+	Name        string
+	Password    string
+	Status      bool
+	PartitionID string
 }
 
 // PrintUser imprime los datos del usuario en un formato legible

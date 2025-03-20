@@ -8,20 +8,17 @@ import (
 	"strings"
 )
 
-func Login(params string) {
-	fs := flag.NewFlagSet("login", flag.ExitOnError)
-	user := fs.String("user", "", "Usuario")
-	pass := fs.String("pass", "", "Contraseña")
-	id := fs.String("id", "", "ID Particion")
+func Mkgrp(params string) {
+	fs := flag.NewFlagSet("mkgrp", flag.ExitOnError)
+	name := fs.String("name", "", "Nombre del grupo")
 
+	// Extraer parámetros usando Regex
 	matches := Globals.Regex.FindAllStringSubmatch(params, -1)
-
-	// Mapa para almacenar los valores ingresados por el usuario
 	parsedFlags := make(map[string]string)
 
 	for _, match := range matches {
-		flagName := match[1]                      // Flag tal cual fue escrito
-		flagValue := strings.Trim(match[2], "\"") // Quita comillas si las tiene
+		flagName := match[1]                      // Nombre del flag
+		flagValue := strings.Trim(match[2], "\"") // Quitar comillas
 
 		// Asigna el flag en la estructura fs
 		if err := fs.Set(flagName, flagValue); err != nil {
@@ -38,10 +35,17 @@ func Login(params string) {
 	}
 	fmt.Println("===================================")
 
-	// Validación de campos obligatorios
-	if *user == "" || *pass == "" || *id == "" {
-		fmt.Println("Error: Los parámetros '-user', '-pass' y '-id' son obligatorios")
+	// Verificar que el parámetro -name se haya ingresado
+	if *name == "" {
+		fmt.Println("Error: el parámetro '-name' es obligatorio")
 		return
 	}
-	UsersManager.Login(*user, *pass, *id)
+
+	// Verificar que el nombre del grupo no sea "root"
+	if strings.ToLower(*name) == "root" {
+		fmt.Println("Error: No se puede crear un grupo con el nombre 'root'")
+		return
+	}
+
+	UsersManager.Mkgrp(*name)
 }

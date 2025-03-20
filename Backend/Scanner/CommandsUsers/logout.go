@@ -1,7 +1,7 @@
 package CommandsUsers
 
 import (
-	"Backend/FileSystem"
+	"Backend/UsersManager"
 	"fmt"
 	"strings"
 )
@@ -13,5 +13,5 @@ func LogOut(params string) {
 		return
 	}
 	// Llamar a la función cerrar sesión
-	FileSystem.Logout()
+	UsersManager.Logout()
 }

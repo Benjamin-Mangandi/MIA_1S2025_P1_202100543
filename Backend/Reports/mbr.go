@@ -47,7 +47,7 @@ func CreateMBR_Report(path string, id string) {
 	dotContent += fmt.Sprintf("<tr><td>mbr_disk_signature</td><td>%d</td></tr>\n", mbr.Signature)
 	// Particiones
 	for _, part := range mbr.Partitions {
-		if part.Status == '1' { // Solo mostrar particiones activas
+		if part.Type == 'p' {
 			dotContent += "<tr><td colspan='2' bgcolor='#CCCCFF'><b>Particion</b></td></tr>\n"
 			dotContent += fmt.Sprintf("<tr><td>part_status</td><td>%c</td></tr>\n", rune(part.Status))
 			dotContent += fmt.Sprintf("<tr><td>part_type</td><td>%c</td></tr>\n", part.Type)
@@ -56,24 +56,30 @@ func CreateMBR_Report(path string, id string) {
 			dotContent += fmt.Sprintf("<tr><td>part_size</td><td>%d</td></tr>\n", part.Size)
 			partNameClean := strings.TrimSpace(strings.ReplaceAll(string(part.Name[:]), "\x00", ""))
 			dotContent += fmt.Sprintf("<tr><td>part_name</td><td>%s</td></tr>\n", partNameClean)
-
-			// Si es extendida, mostrar particiones lógicas
-			if part.Type == 'e' {
-				ebrStart := part.Start
-				for ebrStart != -1 {
-					var ebr Disk.EBR
-					if err := Utilities.ReadObject(file, &ebr, int64(ebrStart)); err != nil {
-						break
-					}
-					dotContent += "<tr><td colspan='2' bgcolor='lightcoral'><b>Particion Logica</b></td></tr>\n"
-					dotContent += fmt.Sprintf("<tr><td>part_next</td><td>%d</td></tr>\n", ebr.PartNext)
-					dotContent += fmt.Sprintf("<tr><td>part_fit</td><td>%c</td></tr>\n", ebr.PartFit)
-					dotContent += fmt.Sprintf("<tr><td>part_start</td><td>%d</td></tr>\n", ebr.PartStart)
-					dotContent += fmt.Sprintf("<tr><td>part_size</td><td>%d</td></tr>\n", ebr.PartSize)
-					dotContent += fmt.Sprintf("<tr><td>part_name</td><td>%s</td></tr>\n", strings.Trim(string(part.Name[:]), "\x00"))
-
-					ebrStart = ebr.PartNext
+		}
+		// Si es extendida, mostrar particiones lógicas
+		if part.Type == 'e' {
+			dotContent += "<tr><td colspan='2' bgcolor='#CCCCFF'><b>Particion</b></td></tr>\n"
+			dotContent += fmt.Sprintf("<tr><td>part_status</td><td>%c</td></tr>\n", rune(part.Status))
+			dotContent += fmt.Sprintf("<tr><td>part_type</td><td>%c</td></tr>\n", part.Type)
+			dotContent += fmt.Sprintf("<tr><td>part_fit</td><td>%c</td></tr>\n", part.Fit)
+			dotContent += fmt.Sprintf("<tr><td>part_start</td><td>%d</td></tr>\n", part.Start)
+			dotContent += fmt.Sprintf("<tr><td>part_size</td><td>%d</td></tr>\n", part.Size)
+			partNameClean := strings.TrimSpace(strings.ReplaceAll(string(part.Name[:]), "\x00", ""))
+			dotContent += fmt.Sprintf("<tr><td>part_name</td><td>%s</td></tr>\n", partNameClean)
+			ebrStart := part.Start
+			for ebrStart != -1 {
+				var ebr Disk.EBR
+				if err := Utilities.ReadObject(file, &ebr, int64(ebrStart)); err != nil {
+					break
 				}
+				dotContent += "<tr><td colspan='2' bgcolor='lightcoral'><b>Particion</b></td></tr>\n"
+				dotContent += fmt.Sprintf("<tr><td>part_next</td><td>%d</td></tr>\n", ebr.PartNext)
+				dotContent += fmt.Sprintf("<tr><td>part_fit</td><td>%c</td></tr>\n", ebr.PartFit)
+				dotContent += fmt.Sprintf("<tr><td>part_start</td><td>%d</td></tr>\n", ebr.PartStart)
+				dotContent += fmt.Sprintf("<tr><td>part_size</td><td>%d</td></tr>\n", ebr.PartSize)
+				dotContent += fmt.Sprintf("<tr><td>part_name</td><td>%s</td></tr>\n", strings.Trim(string(ebr.PartName[:]), "\x00"))
+				ebrStart = ebr.PartNext
 			}
 		}
 	}

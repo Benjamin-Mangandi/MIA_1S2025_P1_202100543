@@ -53,7 +53,7 @@ func Report(params string) {
 		Reports.CreateMBR_Report(*path, *id)
 	}
 	if *name == "disk" {
-		fmt.Println("LLamando a la funcion para disk")
+		Reports.ReportDisk(*path, *id)
 	}
 	if *name == "inode" {
 		fmt.Println("LLamando a la funcion para inode")

@@ -2,6 +2,7 @@ package Utilities
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -47,4 +48,19 @@ func ReadObject(file *os.File, data interface{}, position int64) error {
 
 	// Leer los datos del archivo
 	return binary.Read(file, binary.LittleEndian, data)
+}
+
+// readFromFile lee datos desde un archivo binario en la posición especificada
+func ReadFromFile(file *os.File, offset int64, data interface{}) error {
+	_, err := file.Seek(offset, 0)
+	if err != nil {
+		return fmt.Errorf("failed to seek to offset %d: %w", offset, err)
+	}
+
+	err = binary.Read(file, binary.LittleEndian, data)
+	if err != nil {
+		return fmt.Errorf("failed to read data from file: %w", err)
+	}
+
+	return nil
 }

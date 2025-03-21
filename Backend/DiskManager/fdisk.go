@@ -3,61 +3,120 @@ package DiskManager
 import (
 	Disk "Backend/Structs/disk"
 	"Backend/Utilities"
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"os"
-	"strings"
 )
 
 func Fdisk(size int, path string, name string, unit string, type_ string, fit string) {
-	fmt.Println("====== Start FDISK ======")
+	fmt.Println("======Start FDISK======")
+	fmt.Println("Size:", size)
+	fmt.Println("Path:", path)
+	fmt.Println("Name:", name)
+	fmt.Println("Unit:", unit)
+	fmt.Println("Type:", type_)
+	fmt.Println("Fit:", fit)
 
-	// Convertir el tamaño a bytes
+	// Ajustar el tamaño en bytes
 	size = convertSize(size, unit)
 
-	// Abrir el archivo de disco
-	file, err := os.OpenFile(path, os.O_RDWR, 0666)
+	// Abrir el archivo binario en la ruta proporcionada
+	file, err := Utilities.OpenFile(path)
 	if err != nil {
-		fmt.Println("Error: No se pudo abrir el archivo:", path)
+		fmt.Println("Error: Could not open file at path:", path)
+		return
+	}
+	defer file.Close() // Cerrar el archivo al finalizar
+
+	// Leer el objeto MBR
+	var TempMBR Disk.MBR
+	if err := Utilities.ReadObject(file, &TempMBR, 0); err != nil {
+		fmt.Println("Error: Could not read MBR from file")
 		return
 	}
 
-	// Leer el MBR
-	var mbr Disk.MBR
-	if err := Utilities.ReadObject(file, &mbr, 0); err != nil {
-		fmt.Println("Error al leer el MBR:", err)
+	// Imprimir el objeto MBR
+	Disk.PrintMBR(TempMBR)
+	fmt.Println("-------------")
+
+	// Validar particiones y espacio usado
+	totalPartitions, _, extendedCount, usedSpace := countPartitions(&TempMBR)
+	if totalPartitions >= 4 {
+		fmt.Println("Error: No se pueden crear más de 4 particiones primarias o extendidas en total.")
 		return
 	}
 
-	// Contar particiones y verificar espacio
-	primaryCount, extendedCount, usedSpace, totalPartitions := countPartitions(mbr)
-
-	// Validar si la partición ya existe
-	if partitionExists(mbr, file, name) {
-		fmt.Printf("Error: Ya existe una partición con el nombre '%s'\n", name)
+	if type_ == "e" && extendedCount > 0 {
+		fmt.Println("Error: Solo se permite una partición extendida por disco.")
 		return
 	}
 
-	// Validar restricciones de particionamiento
-	if err := validatePartitionStructure(type_, size, mbr, primaryCount, extendedCount, usedSpace, totalPartitions); err != nil {
-		fmt.Println("Error:", err)
+	if type_ == "l" && extendedCount == 0 {
+		fmt.Println("Error: No se puede crear una partición lógica sin una partición extendida.")
 		return
 	}
 
-	// Crear la nueva partición
-	createPartition(file, &mbr, size, name, type_, fit, totalPartitions)
-
-	// Guardar el MBR actualizado
-	if err := Utilities.WriteObject(file, &mbr, 0); err != nil {
-		fmt.Println("Error al escribir el MBR actualizado:", err)
+	if usedSpace+int32(size) > TempMBR.Size {
+		fmt.Println("Error: No hay suficiente espacio en el disco para crear esta partición.")
 		return
 	}
-	defer file.Close()
-	fmt.Println("====== FIN FDISK ======")
+
+	// Determinar la posición de inicio (gap) para la nueva partición
+	gap := calculateGap(&TempMBR, totalPartitions)
+
+	// Crear partición primaria o extendida
+	if type_ == "p" || type_ == "e" {
+		emptyIndex := findEmptyPartition(&TempMBR)
+		if emptyIndex < 0 {
+			fmt.Println("Error: No se encontró espacio en la tabla de particiones.")
+			return
+		}
+		TempMBR.Partitions[emptyIndex].Size = int32(size)
+		TempMBR.Partitions[emptyIndex].Start = gap
+		copy(TempMBR.Partitions[emptyIndex].Name[:], name)
+		TempMBR.Partitions[emptyIndex].Fit = fit[0]
+		TempMBR.Partitions[emptyIndex].Status = '0'
+		TempMBR.Partitions[emptyIndex].Type = type_[0]
+		TempMBR.Partitions[emptyIndex].Correlative = int32(totalPartitions + 1)
+
+		if type_ == "e" {
+			// Inicializar el primer EBR en la partición extendida
+			ebr := Disk.EBR{
+				PartFit:   fit[0],
+				PartStart: gap, // El primer EBR se coloca al inicio de la partición extendida
+				PartSize:  0,
+				PartNext:  -1,
+			}
+			copy(ebr.PartName[:], "")
+			Utilities.WriteObject(file, ebr, int64(gap))
+		}
+	} else if type_ == "l" {
+		// Crear partición lógica dentro de la partición extendida
+		if err := createLogicalPartition(file, &TempMBR, size, name, fit); err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+	}
+
+	// Sobrescribir el MBR actualizado
+	if err := Utilities.WriteObject(file, TempMBR, 0); err != nil {
+		fmt.Println("Error: Could not write MBR to file")
+		return
+	}
+
+	// Verificar y mostrar el MBR actualizado
+	var TempMBR2 Disk.MBR
+	if err := Utilities.ReadObject(file, &TempMBR2, 0); err != nil {
+		fmt.Println("Error: Could not read MBR from file after writing")
+		return
+	}
+	Disk.PrintMBR(TempMBR2)
+
+	fmt.Println("======FIN FDISK======")
+	fmt.Println("")
 }
 
-// convertSize - Convierte el tamaño a bytes
+// convertSize ajusta el tamaño en bytes según la unidad (k o m)
 func convertSize(size int, unit string) int {
 	switch unit {
 	case "k":
@@ -69,8 +128,8 @@ func convertSize(size int, unit string) int {
 	}
 }
 
-// countPartitions - Cuenta el número de particiones y el espacio usado
-func countPartitions(mbr Disk.MBR) (primary, extended int, usedSpace int32, total int) {
+// countPartitions recorre las particiones del MBR y retorna el total, la cantidad de primarias, extendidas y el espacio usado
+func countPartitions(mbr *Disk.MBR) (total int, primary int, extended int, usedSpace int32) {
 	for i := 0; i < 4; i++ {
 		if mbr.Partitions[i].Size != 0 {
 			total++
@@ -85,167 +144,82 @@ func countPartitions(mbr Disk.MBR) (primary, extended int, usedSpace int32, tota
 	return
 }
 
-func partitionExists(mbr Disk.MBR, file *os.File, name string) bool {
+// calculateGap determina la posición de inicio para la nueva partición
+func calculateGap(mbr *Disk.MBR, totalPartitions int) int32 {
+	if totalPartitions == 0 {
+		return int32(binary.Size(*mbr))
+	}
+	// Se asume que la última partición ocupada es la última en el arreglo
+	last := mbr.Partitions[totalPartitions-1]
+	return last.Start + last.Size
+}
+
+// findEmptyPartition retorna el índice de la primera partición vacía, o -1 si no se encuentra
+func findEmptyPartition(mbr *Disk.MBR) int {
 	for i := 0; i < 4; i++ {
-		// Eliminar caracteres nulos y espacios en blanco del nombre de la partición
-		existingName := string(bytes.TrimRight(mbr.Partitions[i].Name[:], "\x00"))
-		existingName = strings.TrimSpace(existingName)
-
-		fmt.Printf("Comparando partición existente: '%s' con '%s'\n", existingName, name)
-
-		if existingName == name {
-			fmt.Printf("Partición con nombre '%s' ya existe.\n", name)
-			return true
-		}
-
-		// Si es una partición extendida, revisar dentro de la EBR
-		if mbr.Partitions[i].Type == 'e' {
-			if logicalPartitionExists(file, mbr.Partitions[i], name) {
-				return true
-			}
+		if mbr.Partitions[i].Size == 0 {
+			return i
 		}
 	}
-	return false
+	return -1
 }
 
-func logicalPartitionExists(file *os.File, extendedPartition Disk.Partition, name string) bool {
-	var ebr Disk.EBR
-	pos := extendedPartition.Start
-
-	for pos != -1 {
-		// Leer el EBR
-		if err := Utilities.ReadObject(file, &ebr, int64(pos)); err != nil {
-			fmt.Println("Error al leer el EBR:", err)
-			return false
-		}
-
-		// Eliminar caracteres nulos y espacios en blanco del nombre de la partición lógica
-		existingName := string(bytes.TrimRight(ebr.PartName[:], "\x00"))
-		existingName = strings.TrimSpace(existingName)
-
-		fmt.Printf("Comparando partición lógica existente: '%s' con '%s'\n", existingName, name)
-
-		// Comparar nombres
-		if existingName == name {
-			fmt.Printf("Partición lógica con nombre '%s' ya existe.\n", name)
-			return true
-		}
-
-		// Mover al siguiente EBR
-		pos = ebr.PartNext
-	}
-
-	return false
-}
-
-// Valida la estructura de particiones antes de crear una nueva
-func validatePartitionStructure(type_ string, size int, mbr Disk.MBR, primary, extended int, usedSpace int32, total int) error {
-	if total >= 4 && type_ != "l" {
-		return fmt.Errorf("no se pueden crear más de 4 particiones primarias o extendidas")
-	}
-	if type_ == "e" && extended > 0 {
-		return fmt.Errorf("solo se permite una partición extendida por disco")
-	}
-	if type_ == "l" && extended == 0 {
-		return fmt.Errorf("no se pueden crear particiones lógicas sin una extendida")
-	}
-	if usedSpace+int32(size) > mbr.Size {
-		return fmt.Errorf("no hay suficiente espacio en el disco para crear esta partición")
-	}
-	return nil
-}
-
-func createPartition(file *os.File, mbr *Disk.MBR, size int, name, type_, fit string, totalPartitions int) {
-	startPos := int32(binary.Size(*mbr))
-	if totalPartitions > 0 {
-		startPos = mbr.Partitions[totalPartitions-1].Start + mbr.Partitions[totalPartitions-1].Size
-	}
-
-	// Buscar un espacio disponible en el MBR para la nueva partición primaria o extendida
-	if type_ != "l" {
-		for i := 0; i < 4; i++ {
-			if mbr.Partitions[i].Size == 0 {
-				mbr.Partitions[i] = Disk.Partition{
-					Size:   int32(size),
-					Start:  startPos,
-					Type:   type_[0],
-					Fit:    fit[0],
-					Status: 0,
-				}
-				// Copiar el nombre correctamente
-				copy(mbr.Partitions[i].Name[:], []byte(name))
-				fmt.Printf("Nombre copiado: '%s'\n", string(mbr.Partitions[i].Name[:]))
-
-				// Si es extendida, inicializar el primer EBR
-				if type_ == "e" {
-					initEBR(file, startPos)
-				}
-				Disk.PrintPartition(mbr.Partitions[i])
-				return
-			}
-		}
-		fmt.Println("Error: No hay espacio disponible para una nueva partición.")
-		return
-	}
-
-	// Si es una partición lógica, buscar dentro de la extendida
+// createLogicalPartition maneja la creación de particiones lógicas dentro de una partición extendida
+func createLogicalPartition(file *os.File, mbr *Disk.MBR, size int, name string, fit string) error {
 	for i := 0; i < 4; i++ {
 		if mbr.Partitions[i].Type == 'e' {
-			createLogicalPartition(file, mbr.Partitions[i], size, name, fit)
-			return
-		}
-	}
+			ebrPos := mbr.Partitions[i].Start
+			var ebr Disk.EBR
+			// Recorrer la cadena de EBR hasta encontrar el último
+			for {
+				if err := Utilities.ReadObject(file, &ebr, int64(ebrPos)); err != nil {
+					return fmt.Errorf("error al leer EBR: %v", err)
+				}
+				if ebr.PartNext == -1 {
+					break
+				}
+				ebrPos = ebr.PartNext
+			}
 
-	fmt.Println("Error: No se encontró una partición extendida donde agregar la partición lógica.")
-}
+			// Calcular la posición para el nuevo EBR y la partición lógica
+			newEBRPos := ebr.PartStart + ebr.PartSize
+			logicalPartitionStart := newEBRPos + int32(binary.Size(ebr))
 
-// Crea una nueva partición lógica dentro de una extendida
-func createLogicalPartition(file *os.File, extendedPartition Disk.Partition, size int, name, fit string) {
-	var ebr Disk.EBR
-	pos := extendedPartition.Start
-	prevPos := int32(-1)
+			// Actualizar el EBR anterior para enlazar al nuevo EBR
+			ebr.PartNext = newEBRPos
+			Utilities.WriteObject(file, ebr, int64(ebrPos))
 
-	// Buscar el último EBR en la lista
-	for pos != -1 {
-		if err := Utilities.ReadObject(file, &ebr, int64(pos)); err != nil {
-			fmt.Println("Error al leer el EBR:", err)
-			return
-		}
-		if ebr.PartNext == -1 {
+			// Crear y escribir el nuevo EBR
+			newEBR := Disk.EBR{
+				PartFit:   fit[0],
+				PartStart: logicalPartitionStart,
+				PartSize:  int32(size),
+				PartNext:  -1,
+			}
+			copy(newEBR.PartName[:], name)
+			Utilities.WriteObject(file, newEBR, int64(newEBRPos))
+
+			// Imprimir el nuevo EBR creado
+			fmt.Println("Nuevo EBR creado:")
+			Disk.PrintEBR(newEBR)
+			fmt.Println("")
+
+			// Imprimir todos los EBRs en la partición extendida
+			fmt.Println("Imprimiendo todos los EBRs en la partición extendida:")
+			ebrPos = mbr.Partitions[i].Start
+			for {
+				if err := Utilities.ReadObject(file, &ebr, int64(ebrPos)); err != nil {
+					fmt.Println("Error al leer EBR:", err)
+					break
+				}
+				Disk.PrintEBR(ebr)
+				if ebr.PartNext == -1 {
+					break
+				}
+				ebrPos = ebr.PartNext
+			}
 			break
 		}
-		prevPos = pos
-		pos = ebr.PartNext
 	}
-
-	// Crear nueva partición lógica
-	newEBR := Disk.EBR{
-		PartFit:   fit[0],
-		PartStart: pos + int32(binary.Size(ebr)),
-		PartSize:  int32(size),
-		PartNext:  -1,
-	}
-	copy(newEBR.PartName[:], name)
-
-	// Escribir el nuevo EBR en el disco
-	Utilities.WriteObject(file, newEBR, int64(newEBR.PartStart))
-
-	// Enlazar con el EBR anterior si existía
-	if prevPos != -1 {
-		ebr.PartNext = newEBR.PartStart
-		Utilities.WriteObject(file, ebr, int64(prevPos))
-	}
-
-	fmt.Println("Partición lógica creada correctamente:", name)
-}
-
-// Inicializa un EBR en una partición extendida
-func initEBR(file *os.File, start int32) {
-	ebr := Disk.EBR{
-		PartFit:   'b',
-		PartStart: start,
-		PartSize:  0,
-		PartNext:  -1,
-	}
-	Utilities.WriteObject(file, ebr, int64(start))
+	return nil
 }

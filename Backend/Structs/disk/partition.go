@@ -1,6 +1,10 @@
 package Disk
 
-import "fmt"
+import (
+	"Backend/Responsehandler"
+	"bytes"
+	"fmt"
+)
 
 type Partition struct {
 	Status      byte     // '0' o '1' según si está montada
@@ -14,5 +18,17 @@ type Partition struct {
 }
 
 func PrintPartition(data Partition) {
-	fmt.Println(fmt.Sprintf("Name: %s, type: %s, start: %d, size: %d, status: %s, id: %s", string(data.Name[:]), string(data.Type), data.Start, data.Size, string(data.Status), string(data.Id[:])))
+	nameStr := string(bytes.Trim(data.Name[:], "\x00"))
+	idStr := string(bytes.Trim(data.Id[:], "\x00"))
+	answer := "---------------------\n" +
+		"Partición creada correctamente\n" +
+		"Nombre: " + nameStr + "\n" +
+		"Tamaño: " + fmt.Sprintf("%d", data.Size) + " bytes\n" +
+		"Tipo: " + fmt.Sprintf("%c", data.Type) + "\n" +
+		"Estado: " + fmt.Sprintf("%c", data.Status) + "\n" +
+		"Fit: " + fmt.Sprintf("%c", data.Fit) + "\n" +
+		"Correlativo: " + fmt.Sprintf("%d", data.Correlative) + "\n" +
+		"ID: " + idStr + "\n" +
+		"---------------------"
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, answer)
 }

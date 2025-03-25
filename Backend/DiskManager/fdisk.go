@@ -34,9 +34,6 @@ func Fdisk(size int, path string, name string, unit string, type_ string, fit st
 		fmt.Println("Error: Could not read MBR from file")
 		return
 	}
-
-	// Imprimir el objeto MBR
-	Disk.PrintMBR(TempMBR)
 	fmt.Println("-------------")
 
 	// Validar particiones y espacio usado
@@ -78,7 +75,7 @@ func Fdisk(size int, path string, name string, unit string, type_ string, fit st
 		TempMBR.Partitions[emptyIndex].Status = '0'
 		TempMBR.Partitions[emptyIndex].Type = type_[0]
 		TempMBR.Partitions[emptyIndex].Correlative = int32(totalPartitions + 1)
-
+		Disk.PrintPartition(TempMBR.Partitions[emptyIndex])
 		if type_ == "e" {
 			// Inicializar el primer EBR en la partición extendida
 			ebr := Disk.EBR{
@@ -110,7 +107,6 @@ func Fdisk(size int, path string, name string, unit string, type_ string, fit st
 		fmt.Println("Error: Could not read MBR from file after writing")
 		return
 	}
-	Disk.PrintMBR(TempMBR2)
 
 	fmt.Println("======FIN FDISK======")
 	fmt.Println("")
@@ -195,29 +191,13 @@ func createLogicalPartition(file *os.File, mbr *Disk.MBR, size int, name string,
 				PartStart: logicalPartitionStart,
 				PartSize:  int32(size),
 				PartNext:  -1,
+				PartMount: '0',
 			}
 			copy(newEBR.PartName[:], name)
 			Utilities.WriteObject(file, newEBR, int64(newEBRPos))
 
 			// Imprimir el nuevo EBR creado
-			fmt.Println("Nuevo EBR creado:")
 			Disk.PrintEBR(newEBR)
-			fmt.Println("")
-
-			// Imprimir todos los EBRs en la partición extendida
-			fmt.Println("Imprimiendo todos los EBRs en la partición extendida:")
-			ebrPos = mbr.Partitions[i].Start
-			for {
-				if err := Utilities.ReadObject(file, &ebr, int64(ebrPos)); err != nil {
-					fmt.Println("Error al leer EBR:", err)
-					break
-				}
-				Disk.PrintEBR(ebr)
-				if ebr.PartNext == -1 {
-					break
-				}
-				ebrPos = ebr.PartNext
-			}
 			break
 		}
 	}

@@ -2,6 +2,7 @@ package Disk
 
 import (
 	"Backend/Responsehandler"
+	"bytes"
 	"fmt"
 )
 
@@ -14,12 +15,13 @@ type MBR struct {
 }
 
 func PrintMBR(data MBR) {
+	creationDateStr := string(bytes.Trim(data.CreationDate[:], "\x00"))
 	answer := "---------------------\n" +
 		"Disco creado correctamente\n" +
-		"Tamaño: " + fmt.Sprintf("%d", data.Size) + " bytes" + "\n" +
-		"Fecha de creación: " + string(data.CreationDate[:]) + "\n" +
+		"Tamaño: " + fmt.Sprintf("%d", data.Size) + " bytes\n" +
+		"Fecha de creación: " + creationDateStr + "\n" +
 		"Signature: " + fmt.Sprintf("%d", data.Signature) + "\n" +
-		"Fit: " + string(data.Fit) + "\n" +
+		"Fit: " + fmt.Sprintf("%c", data.Fit) + "\n" +
 		"---------------------"
 	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, answer)
 }

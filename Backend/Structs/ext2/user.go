@@ -27,9 +27,3 @@ func PrintUser(user User) {
 	fmt.Printf("Password: %s\n", user.Password)
 	fmt.Println("=====================================")
 }
-
-// deleteUser marca el usuario como eliminado
-func deleteUser(user *User) {
-	user.ID = "0"
-	user.Status = false
-}

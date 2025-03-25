@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func ReportDisk(path string, id string) {
+func CreateDiskReport(path string, id string) {
 	// Buscar la partición montada
 	path = fixPath(path)
 	mountedPartition := DiskManager.GetMountedPartitionByID(id)

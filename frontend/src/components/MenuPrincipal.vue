@@ -20,7 +20,6 @@
               <label class="dropdown-item file-input-label"> Abrir Archivo <input type="file" accept=".smia"
                   @change="abrirArchivo" style="display: none;">
               </label>
-              <a class="dropdown-item file-input-label" @click="guardar"> Guardar </a>
             </div>
           </div>
         </div>
@@ -41,13 +40,13 @@
     <div class="columns">
       <!-- Div a la izquierda -->
       <div class="column is-half textarea-wrapper">
-        <Codemirror v-model="codigoEntrada" placeholder="ENTRADA DE CODIGO" :extensions="extensions"
+        <Codemirror v-model="codigoEntrada" placeholder="ENTRADA DE COMANDOS" :extensions="extensions"
           :options="editorOptions"></Codemirror>
       </div>
 
       <!-- Div a la derecha -->
       <div class="column is-half textarea-wrapper">
-        <Codemirror v-model="salidaCodigo" placeholder="SALIDA DE CODIGO" :extensions="outputExtensions"></Codemirror>
+        <Codemirror v-model="salidaCodigo" placeholder="SALIDA DE RESULTADOS" :extensions="outputExtensions"></Codemirror>
       </div>
     </div>
   </div>
@@ -143,30 +142,12 @@ export default {
     limpiar() {
       this.salidaCodigo = "";
       this.codigoEntrada = "";
-    }
-    ,
-    guardar() {
-      // Si hay un archivo abierto, guardamos los cambios
-      if (this.nombreArchivo) {
-        const blob = new Blob([this.codigoEntrada], { type: "text/plain" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = this.nombreArchivo; // Usa el nombre del archivo abierto
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } else {
-        // Si no hay archivo abierto, creamos uno nuevo
-      }
     },
   }
 };
 
 </script>
 
-
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 .init {
   background-color: #1e1e2e;
@@ -193,16 +174,17 @@ export default {
 .button.is-primary.is-focused {
   background-color: #42c8f9;
   color: #1e1e1e;
+  font-weight: bold;
   font-style: oblique;
 }
 .button.is-primary {
   background-color: #1bc40d;
   color: #1e1e1e;
-  font-style: oblique;
+  font-style: normal;
 }
 
 .button {
-  background-color: #f4c773;
+  background-color:  #f39c12 ;
   color: #1e1e1e;
   font-weight: bold;
 }
@@ -228,21 +210,9 @@ export default {
   cursor: pointer;
 }
 
-.file-input-label2 {
-  cursor: pointer;
-}
-.file-input-label2:hover {
-  background-color: #800000;
-  /* Color en hover */
-}
-
 .file-input-label:hover {
   background-color: #00b89c;
   /* Color en hover */
 }
 
-.file-input {
-  display: none;
-  /* Esconder el input de archivo */
-}
 </style>

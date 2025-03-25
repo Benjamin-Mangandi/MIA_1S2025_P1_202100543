@@ -53,25 +53,25 @@ func Report(params string) {
 		Reports.CreateMBR_Report(*path, *id)
 	}
 	if *name == "disk" {
-		Reports.ReportDisk(*path, *id)
+		Reports.CreateDiskReport(*path, *id)
 	}
 	if *name == "inode" {
-		fmt.Println("LLamando a la funcion para inode")
+		Reports.CreateInode_Report(*path, *id)
 	}
 	if *name == "block" {
 		fmt.Println("LLamando a la funcion para block")
 	}
 	if *name == "bm_inode" {
-		fmt.Println("LLamando a la funcion para bm_inode")
+		Reports.CreateBmInodeReport(*path, *id)
 	}
 	if *name == "bm_block" {
-		fmt.Println("LLamando a la funcion para bm_block")
+		Reports.CreateBmBlockReport(*path, *id)
 	}
 	if *name == "tree" {
 		fmt.Println("LLamando a la funcion para block")
 	}
 	if *name == "sb" {
-		fmt.Println("LLamando a la funcion para bm_inode")
+		Reports.CreateSbReport(*path, *id)
 	}
 	if *name == "file" {
 		fmt.Println("LLamando a la funcion para bm_block")

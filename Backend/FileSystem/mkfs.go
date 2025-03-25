@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 func Mkfs(id string, type_ string, fs_ string) {
@@ -45,8 +46,6 @@ func Mkfs(id string, type_ string, fs_ string) {
 		fmt.Println("Error: Partición no encontrada en el MBR.")
 		return
 	}
-
-	Disk.PrintPartition(TempMBR.Partitions[index])
 
 	// Validar si la partición ya está marcada como montada
 	if TempMBR.Partitions[index].Status == '1' {
@@ -130,6 +129,12 @@ func calculateInodes(partition Disk.Partition) int32 {
 
 // Crea y configura el superbloque para EXT2
 func createSuperblock(n int32, partition Disk.Partition) Ext2.Superblock {
+	// Formatear la fecha actual
+	now := time.Now().Format("2006-01-02 15:04")
+	var mtime, umtime [16]byte
+	copy(mtime[:], now)
+	copy(umtime[:], now)
+
 	return Ext2.Superblock{
 		S_filesystem_type:   2, // EXT2
 		S_inodes_count:      n,
@@ -144,6 +149,8 @@ func createSuperblock(n int32, partition Disk.Partition) Ext2.Superblock {
 		S_bm_block_start:    partition.Start + int32(binary.Size(Ext2.Superblock{})) + n,
 		S_inode_start:       partition.Start + int32(binary.Size(Ext2.Superblock{})) + n + 3*n,
 		S_block_start:       partition.Start + int32(binary.Size(Ext2.Superblock{})) + n + 3*n + n*int32(binary.Size(Ext2.Inode{})),
+		S_mtime:             mtime,
+		S_umtime:            umtime,
 	}
 }
 
@@ -335,19 +342,23 @@ func initInode(inode *Ext2.Inode, date string) {
 	copy(inode.I_perm[:], "664")
 }
 
-// Función auxiliar para marcar los inodos y bloques usados
 func markUsedInodesAndBlocks(newSuperblock Ext2.Superblock, file *os.File) error {
+	// Lista de posiciones a marcar como ocupadas
 	positions := []int64{
-		int64(newSuperblock.S_bm_inode_start),
-		int64(newSuperblock.S_bm_inode_start + 1),
-		int64(newSuperblock.S_bm_block_start),
-		int64(newSuperblock.S_bm_block_start + 1),
+		int64(newSuperblock.S_bm_inode_start),     // Inodo raíz "/"
+		int64(newSuperblock.S_bm_inode_start + 1), // Inodo "users.txt"
+		int64(newSuperblock.S_bm_block_start),     // Bloque de la carpeta raíz
+		int64(newSuperblock.S_bm_block_start + 1), // Bloque de contenido "users.txt"
 	}
 
+	// Marcar como '1' en cada posición
 	for _, pos := range positions {
-		if err := Utilities.WriteObject(file, byte(1), pos); err != nil {
+		_, err := file.WriteAt([]byte{'1'}, pos)
+		if err != nil {
+			fmt.Println("Error al marcar bitmaps de inodos/bloques:", err)
 			return err
 		}
 	}
+
 	return nil
 }

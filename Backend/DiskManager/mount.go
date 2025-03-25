@@ -2,6 +2,7 @@ package DiskManager
 
 import (
 	"Backend/Globals"
+	"Backend/Responsehandler"
 	Disk "Backend/Structs/disk"
 	"Backend/Utilities"
 	"bytes"
@@ -25,8 +26,6 @@ func Mount(path string, name string) {
 		return
 	}
 
-	fmt.Printf("Buscando partición con nombre: '%s'\n", name)
-
 	// Buscar la partición por nombre
 	nameBytes := [16]byte{}
 	copy(nameBytes[:], []byte(name))
@@ -44,12 +43,20 @@ func Mount(path string, name string) {
 	}
 
 	if !partitionFound {
-		fmt.Println("Error: Partición no encontrada o no es una partición primaria")
+		response := "---------------------\n" +
+			"Error: Partición no encontrada o no es una partición primaria"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	// Generar el ID del disco y verificar si ya tiene particiones montadas
 	diskID := generateDiskID(path)
+	if FindPartition(path, name) {
+		response := "---------------------\n" +
+			"Error: La particion ya esta montada: " + name
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
+		return
+	}
 	mountedPartitionsInDisk := Globals.MountedPartitions[diskID]
 
 	// Determinar la letra para el disco
@@ -89,8 +96,9 @@ func Mount(path string, name string) {
 	//     fmt.Println("Error: No se pudo sobrescribir el MBR en el archivo")
 	//     return
 	// }
-
-	fmt.Printf("Partición montada con ID: %s\n", partitionID)
+	response := strings.Repeat("-", 40) + "\n" +
+		"Partición montada con ID:" + partitionID + "\n"
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }
 
 // Obtener todas las particiones montadas
@@ -119,20 +127,52 @@ func generateDiskID(path string) string {
 	return strings.ToLower(path)
 }
 
-func PrintMountedPartitions() {
-	fmt.Println("Particiones montadas:")
+func FindPartition(path, name string) bool {
+	// Recorrer las particiones montadas en el mapa
+	for _, partitions := range Globals.MountedPartitions {
+		// Recorrer cada partición en la lista de particiones
+		for _, partition := range partitions {
+			// Verificar si tanto el Path como el Name coinciden
+			if partition.Path == path && partition.Name == name {
+				// Retornar la partición y true si se encontró
+				return true
+			}
+		}
+	}
+	// Retornar nil y false si no se encontró la partición
+	return false
+}
 
+func PrintMountedPartitions() {
+	// Encabezado
+	response := strings.Repeat("-", 40) + "\n" +
+		"Particiones montadas:\n"
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
+
+	// Verificar si hay particiones montadas
 	if len(Globals.MountedPartitions) == 0 {
-		fmt.Println("No hay particiones montadas.")
+		response := strings.Repeat("-", 40) + "\n" +
+			"No hay particiones montadas.\n"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
+	// Variable para acumular el string completo
+	var fullResponse string
+
+	// Recorrer discos montados
 	for diskID, partitions := range Globals.MountedPartitions {
-		fmt.Printf("Disco ID: %s\n", diskID)
+		fullResponse += fmt.Sprintf("---------------------\n * Disco: %s\n", diskID)
+
+		// Recorrer particiones montadas en el disco
 		for _, partition := range partitions {
-			fmt.Printf(" - Partición Name: %s, ID: %s, Path: %s, Status: %c\n",
-				partition.Name, partition.ID, partition.Path, partition.Status)
+			partitionInfo := fmt.Sprintf(" - Partición Nombre: %s\nID: %s\nStatus: %c\n",
+				partition.Name, partition.ID, partition.Status)
+			fullResponse += partitionInfo
 		}
+
 	}
-	fmt.Println("")
+
+	// Al final, añadir toda la información acumulada al global response
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, fullResponse)
 }

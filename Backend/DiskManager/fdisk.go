@@ -11,7 +11,6 @@ import (
 )
 
 func Fdisk(size int, path string, name string, unit string, type_ string, fit string) {
-	fmt.Println("======Start FDISK======")
 
 	// Ajustar el tamaño en bytes
 	size = convertSize(size, unit)
@@ -30,7 +29,6 @@ func Fdisk(size int, path string, name string, unit string, type_ string, fit st
 		fmt.Println("Error: No fue posible leer el MBR en el archivo")
 		return
 	}
-	fmt.Println("-------------")
 
 	// Validar particiones y espacio usado
 	totalPartitions, _, extendedCount, usedSpace := countPartitions(&TempMBR)
@@ -119,8 +117,6 @@ func Fdisk(size int, path string, name string, unit string, type_ string, fit st
 		fmt.Println("Error: Could not read MBR from file after writing")
 		return
 	}
-
-	fmt.Println("======FIN FDISK======")
 	fmt.Println("")
 }
 

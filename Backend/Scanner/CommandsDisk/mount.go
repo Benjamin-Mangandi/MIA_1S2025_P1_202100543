@@ -3,6 +3,7 @@ package CommandsDisk
 import (
 	"Backend/DiskManager"
 	"Backend/Globals"
+	"Backend/Responsehandler"
 	"flag"
 	"fmt"
 	"strings"
@@ -17,8 +18,8 @@ func Mount(params string) {
 	matches := Globals.Regex.FindAllStringSubmatch(params, -1)
 	for _, match := range matches {
 		flagName := strings.ToLower(match[1])     // Convertir nombre del flag a minúsculas
-		flagValue := strings.Trim(match[2], "\"") // Eliminar comillas
-
+		flagValue := strings.ToLower(match[2])    // Convertir valor a minúsculas si aplica
+		flagValue = strings.Trim(flagValue, "\"") // Eliminar comillas
 		if err := fs.Set(flagName, flagValue); err != nil {
 			fmt.Printf("Error: No se pudo establecer el flag '%s'\n", flagName)
 			return
@@ -27,16 +28,13 @@ func Mount(params string) {
 
 	// Validación de campos obligatorios
 	if *path == "" || *name == "" {
-		fmt.Println("Error: Los parámetros '-path' y '-name' son obligatorios")
+		response := "---------------------\n" +
+			"Error: Los parámetros '-path' y '-name' son obligatorios"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
-	// Llamar a la función Mount con el nombre en minúsculas
-	DiskManager.Mount(*path, strings.ToLower(*name))
+	// Llamar a la función Mount
+	DiskManager.Mount(*path, *name)
 
 }
-
-//mount -path="/home/benjamin/discos/disco1.mia" -name=particion1
-//mount -path="/home/benjamin/discos/disco1.mia" -name=particion2
-//mount -path="/home/benjamin/discos/disco2.mia" -name=part3
-//mount -path="/home/benjamin/discos/disco1.mia" -name=part3

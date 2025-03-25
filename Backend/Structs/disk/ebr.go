@@ -4,6 +4,7 @@ import (
 	"Backend/Responsehandler"
 	"bytes"
 	"fmt"
+	"strings"
 )
 
 // Estructura del EBR
@@ -20,13 +21,12 @@ type EBR struct {
 func PrintEBR(data EBR) {
 
 	nameStr := string(bytes.Trim(data.PartName[:], "\x00"))
-	response := "---------------------\n" +
+	response := strings.Repeat("-", 40) + "\n" +
 		"Partición lógica creada correctamente\n" +
 		"Nombre: " + nameStr + "\n" +
 		"Tamaño: " + fmt.Sprintf("%d", data.PartSize) + " bytes\n" +
 		"Tipo: l\n" +
 		"Estado: " + fmt.Sprintf("%c", data.PartMount) + "\n" +
-		"Fit: " + fmt.Sprintf("%c", data.PartFit) + "\n" +
-		"---------------------"
+		"Fit: " + fmt.Sprintf("%c", data.PartFit) + "\n"
 	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

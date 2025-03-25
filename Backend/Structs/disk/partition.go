@@ -4,6 +4,7 @@ import (
 	"Backend/Responsehandler"
 	"bytes"
 	"fmt"
+	"strings"
 )
 
 type Partition struct {
@@ -20,7 +21,7 @@ type Partition struct {
 func PrintPartition(data Partition) {
 	nameStr := string(bytes.Trim(data.Name[:], "\x00"))
 	idStr := string(bytes.Trim(data.Id[:], "\x00"))
-	response := "---------------------\n" +
+	response := strings.Repeat("-", 40) + "\n" +
 		"Partición creada correctamente\n" +
 		"Nombre: " + nameStr + "\n" +
 		"Tamaño: " + fmt.Sprintf("%d", data.Size) + " bytes\n" +
@@ -28,7 +29,6 @@ func PrintPartition(data Partition) {
 		"Estado: " + fmt.Sprintf("%c", data.Status) + "\n" +
 		"Fit: " + fmt.Sprintf("%c", data.Fit) + "\n" +
 		"Correlativo: " + fmt.Sprintf("%d", data.Correlative) + "\n" +
-		"ID: " + idStr + "\n" +
-		"---------------------"
+		"ID: " + idStr + "\n"
 	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

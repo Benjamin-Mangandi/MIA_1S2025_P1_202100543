@@ -1,8 +1,10 @@
 package DiskManager
 
 import (
+	"Backend/Responsehandler"
 	Disk "Backend/Structs/disk"
 	"Backend/Utilities"
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"os"
@@ -10,12 +12,6 @@ import (
 
 func Fdisk(size int, path string, name string, unit string, type_ string, fit string) {
 	fmt.Println("======Start FDISK======")
-	fmt.Println("Size:", size)
-	fmt.Println("Path:", path)
-	fmt.Println("Name:", name)
-	fmt.Println("Unit:", unit)
-	fmt.Println("Type:", type_)
-	fmt.Println("Fit:", fit)
 
 	// Ajustar el tamaño en bytes
 	size = convertSize(size, unit)
@@ -23,7 +19,7 @@ func Fdisk(size int, path string, name string, unit string, type_ string, fit st
 	// Abrir el archivo binario en la ruta proporcionada
 	file, err := Utilities.OpenFile(path)
 	if err != nil {
-		fmt.Println("Error: Could not open file at path:", path)
+		fmt.Println("Error: No es posible abrir el archivo en el directorio: ", path)
 		return
 	}
 	defer file.Close() // Cerrar el archivo al finalizar
@@ -31,7 +27,7 @@ func Fdisk(size int, path string, name string, unit string, type_ string, fit st
 	// Leer el objeto MBR
 	var TempMBR Disk.MBR
 	if err := Utilities.ReadObject(file, &TempMBR, 0); err != nil {
-		fmt.Println("Error: Could not read MBR from file")
+		fmt.Println("Error: No fue posible leer el MBR en el archivo")
 		return
 	}
 	fmt.Println("-------------")
@@ -39,22 +35,36 @@ func Fdisk(size int, path string, name string, unit string, type_ string, fit st
 	// Validar particiones y espacio usado
 	totalPartitions, _, extendedCount, usedSpace := countPartitions(&TempMBR)
 	if totalPartitions >= 4 {
-		fmt.Println("Error: No se pueden crear más de 4 particiones primarias o extendidas en total.")
+		response := "---------------------\n" +
+			"Error: No se pueden crear más de 4 particiones primarias o extendidas en total."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	if type_ == "e" && extendedCount > 0 {
-		fmt.Println("Error: Solo se permite una partición extendida por disco.")
+		response := "---------------------\n" +
+			"Error: Solo se permite una partición extendida por disco."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	if type_ == "l" && extendedCount == 0 {
-		fmt.Println("Error: No se puede crear una partición lógica sin una partición extendida.")
+		response := "---------------------\n" +
+			"Error: No se puede crear una partición lógica sin una partición extendida."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
-	if usedSpace+int32(size) > TempMBR.Size {
-		fmt.Println("Error: No hay suficiente espacio en el disco para crear esta partición.")
+	if int64(usedSpace+int32(size)) > TempMBR.Size {
+		response := "---------------------\n" +
+			"Error: No hay suficiente espacio en el disco para crear esta partición."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
+		return
+	}
+	if usedNames(&TempMBR, name) {
+		response := "---------------------\n" +
+			"Error: Ya hay una partición con el nombre: " + name
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -65,7 +75,9 @@ func Fdisk(size int, path string, name string, unit string, type_ string, fit st
 	if type_ == "p" || type_ == "e" {
 		emptyIndex := findEmptyPartition(&TempMBR)
 		if emptyIndex < 0 {
-			fmt.Println("Error: No se encontró espacio en la tabla de particiones.")
+			response := "---------------------\n" +
+				"Error: No se encontró espacio en la tabla de particiones."
+			Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 			return
 		}
 		TempMBR.Partitions[emptyIndex].Size = int32(size)
@@ -202,4 +214,14 @@ func createLogicalPartition(file *os.File, mbr *Disk.MBR, size int, name string,
 		}
 	}
 	return nil
+}
+
+func usedNames(mbr *Disk.MBR, name string) bool {
+	for i := 0; i < 4; i++ {
+		partitionName := string(bytes.Trim(mbr.Partitions[i].Name[:], "\x00")) // Eliminar bytes nulos
+		if partitionName == name {
+			return true
+		}
+	}
+	return false
 }

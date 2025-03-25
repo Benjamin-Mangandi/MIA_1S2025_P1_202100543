@@ -20,7 +20,7 @@ type Partition struct {
 func PrintPartition(data Partition) {
 	nameStr := string(bytes.Trim(data.Name[:], "\x00"))
 	idStr := string(bytes.Trim(data.Id[:], "\x00"))
-	answer := "---------------------\n" +
+	response := "---------------------\n" +
 		"Partición creada correctamente\n" +
 		"Nombre: " + nameStr + "\n" +
 		"Tamaño: " + fmt.Sprintf("%d", data.Size) + " bytes\n" +
@@ -30,5 +30,5 @@ func PrintPartition(data Partition) {
 		"Correlativo: " + fmt.Sprintf("%d", data.Correlative) + "\n" +
 		"ID: " + idStr + "\n" +
 		"---------------------"
-	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, answer)
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

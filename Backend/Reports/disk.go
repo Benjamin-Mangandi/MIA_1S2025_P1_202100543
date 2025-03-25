@@ -109,7 +109,7 @@ func CreateDiskReport(path string, id string) {
 	}
 
 	// Calcular espacio libre restante y añadirlo si es necesario
-	freeSize := totalSize - usedSize
+	freeSize := totalSize - int64(usedSize)
 	if freeSize > 0 {
 		freePercentage := (float64(freeSize) / float64(totalSize)) * 100
 		dotContent += fmt.Sprintf("|Libre %.2f%%", freePercentage)

@@ -1,6 +1,7 @@
 package Scanner
 
 import (
+	"Backend/Responsehandler"
 	"Backend/Scanner/CommandsDisk"
 	"Backend/Scanner/CommandsFileSystem"
 	"Backend/Scanner/CommandsFilesFolders"
@@ -76,6 +77,8 @@ func AnalyzeCommand(command string, params string) {
 	case strings.EqualFold(command, "mkdir"):
 		CommandsFilesFolders.Mkdir(params)
 	default:
-		fmt.Println("Error: Comando inválido o no encontrado")
+		response := "---------------------\n" +
+			"Error: Comando inválido o no encontrado: " + string(command)
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 	}
 }

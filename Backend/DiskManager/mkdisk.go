@@ -1,31 +1,23 @@
 package DiskManager
 
 import (
+	"Backend/Responsehandler"
 	Disk "Backend/Structs/disk"
 	"Backend/Utilities"
 	"fmt"
 	"math/rand"
 	"os"
-	"strings"
 	"time"
 )
 
 // Mkdisk crea un nuevo disco binario
 func Mkdisk(size int, fit string, unit string, path string) {
-	// Convertir fit y unit a minúsculas
-	fit = strings.ToLower(fit)
-	unit = strings.ToLower(unit)
 
-	// Validar fit (bf, wf, ff)
-	validFits := map[string]bool{"bf": true, "wf": true, "ff": true}
-	if !validFits[fit] {
-		fmt.Println("Error: Fit debe ser 'bf', 'wf' o 'ff'.")
-		return
-	}
-
-	// Validar size > 0
-	if size <= 0 {
-		fmt.Println("Error: El tamaño del disco debe ser mayor a 0.")
+	err := Utilities.CreateParentDirs(path)
+	if err != nil {
+		response := "---------------------\n" +
+			"Error al crear las carpetas padre"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -37,7 +29,9 @@ func Mkdisk(size int, fit string, unit string, path string) {
 	case "m":
 		multiplier = 1024 * 1024
 	default:
-		fmt.Println("Error: Las unidades válidas son 'k' (kilobytes) o 'm' (megabytes).")
+		response := "---------------------\n" +
+			"Error: Unidad inválida, debe ser 'k' o 'm'"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -70,7 +64,7 @@ func Mkdisk(size int, fit string, unit string, path string) {
 
 	// Crear estructura MBR
 	var newMBR Disk.MBR
-	newMBR.Size = int32(sizeInBytes)
+	newMBR.Size = int64(sizeInBytes)
 	newMBR.Signature = rand.Int31() // Número aleatorio único para el disco
 	newMBR.Fit = fit[0]             // Almacenar solo el primer carácter del fit
 

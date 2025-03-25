@@ -3,8 +3,8 @@ package CommandsDisk
 import (
 	"Backend/DiskManager"
 	"Backend/Globals"
+	"Backend/Responsehandler"
 	"flag"
-	"fmt"
 	"os"
 	"strings"
 )
@@ -28,18 +28,24 @@ func MkDisk(params string) {
 	}
 	// Validaciones
 	if *size <= 0 {
-		fmt.Println("Error: El tamaño debe ser mayor a 0")
+		response := "---------------------\n" +
+			"Error: El tamaño debe ser mayor a 0"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	if *path == "" {
-		fmt.Println("Error: Se requiere especificar un path")
+		response := "---------------------\n" +
+			"Error: Se requiere especificar un path"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	// Validar unidad
 	if *unit != "k" && *unit != "m" {
-		fmt.Println("Error: Unidad inválida, debe ser 'k' o 'm'")
+		response := "---------------------\n" +
+			"Error: Unidad inválida, debe ser 'k' o 'm'"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -47,9 +53,3 @@ func MkDisk(params string) {
 	DiskManager.Mkdisk(*size, *fit, *unit, *path)
 
 }
-
-//mkdisk -Size=3000 -unit=K -path=/home/benjamin/discos/Disco1.mia
-//mkdisk -path=/home/benjamin/discos/Disco2.mia -Unit=K -size=3000
-//mkdisk -size=5 -unit=M -path="/home/benjamin/discos/Disco3.mia"​
-//mkdisk -size=10 -Path="/home/benjamin/discos/Disco4.mia"
-//mkdisk -size=1024 -unit=M -fit=BF -path="/home/benjamin/discos/DiscoDefinitivo.mia"

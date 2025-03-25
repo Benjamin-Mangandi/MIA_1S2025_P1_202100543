@@ -1,6 +1,7 @@
 package DiskManager
 
 import (
+	"Backend/Responsehandler"
 	"fmt"
 	"os"
 )
@@ -9,26 +10,22 @@ func RmDisk(path string) {
 
 	// Verificar si el archivo existe antes de eliminarlo
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		fmt.Printf("Error: No se encontró el disco en la ruta '%s'.\n", path)
-		return
-	}
+		response := fmt.Sprintf("---------------------\n"+
+			"Error: No se encontró el disco en la ruta '%s'.\n", path)
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 
-	// Confirmar con el usuario antes de eliminar
-	fmt.Printf("¿Está seguro de que desea eliminar el disco en '%s'? (s/n): ", path)
-	var response string
-	fmt.Scanln(&response)
-
-	if response != "s" && response != "S" {
-		fmt.Println("Operación cancelada.")
 		return
 	}
 
 	// Intentar eliminar el archivo
 	err := os.Remove(path)
 	if err != nil {
-		fmt.Printf("Error: No se pudo eliminar el disco. %v\n", err)
+		response := "---------------------\n" +
+			"Error: No se pudo eliminar el disco."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
-
-	fmt.Println("Disco eliminado con éxito.")
+	response := fmt.Sprintf("---------------------\n"+
+		"Disco Eliminado Correctamente: '%s'.\n", path)
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

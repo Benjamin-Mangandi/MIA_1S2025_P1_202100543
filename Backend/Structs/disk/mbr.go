@@ -7,7 +7,7 @@ import (
 )
 
 type MBR struct {
-	Size         int32        //Tamaño del disco
+	Size         int64        //Tamaño del disco
 	CreationDate [16]byte     //Fecha de creacion del disco
 	Signature    int32        //Numero random que lo identifica
 	Fit          byte         //Tipo de ajuste: B, F o w
@@ -16,12 +16,12 @@ type MBR struct {
 
 func PrintMBR(data MBR) {
 	creationDateStr := string(bytes.Trim(data.CreationDate[:], "\x00"))
-	answer := "---------------------\n" +
+	response := "---------------------\n" +
 		"Disco creado correctamente\n" +
 		"Tamaño: " + fmt.Sprintf("%d", data.Size) + " bytes\n" +
 		"Fecha de creación: " + creationDateStr + "\n" +
 		"Signature: " + fmt.Sprintf("%d", data.Signature) + "\n" +
 		"Fit: " + fmt.Sprintf("%c", data.Fit) + "\n" +
 		"---------------------"
-	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, answer)
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

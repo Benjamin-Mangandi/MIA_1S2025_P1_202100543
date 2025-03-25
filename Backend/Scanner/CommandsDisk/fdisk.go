@@ -3,6 +3,7 @@ package CommandsDisk
 import (
 	"Backend/DiskManager"
 	"Backend/Globals"
+	"Backend/Responsehandler"
 	"flag"
 	"fmt"
 	"strings"
@@ -40,23 +41,33 @@ func FDisk(input string) {
 
 	// Validaciones de parámetros
 	if *size <= 0 {
-		fmt.Println("Error: El tamaño debe ser mayor a 0")
+		response := "---------------------\n" +
+			"Error: El tamaño de la particion debe ser mayor a 0"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 	if *path == "" {
-		fmt.Println("Error: Se requiere la ruta del archivo")
+		response := "---------------------\n" +
+			"Error: Se requiere la ruta del archivo"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 	if !validUnits[*unit] {
-		fmt.Println("Error: Unidad inválida, debe ser 'b', 'k' o 'm'")
+		response := "---------------------\n" +
+			"Error: Unidad inválida, debe ser 'b', 'k' o 'm'"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 	if !validTypes[*type_] {
-		fmt.Println("Error: Tipo inválido, debe ser 'p' (primaria), 'e' (extendida) o 'l' (logica)")
+		response := "---------------------\n" +
+			"Error: Tipo inválido, debe ser 'p' (primaria), 'e' (extendida) o 'l' (logica)"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 	if !validFits[*fit] {
-		fmt.Println("Errora: Ajuste inválido, debe ser 'bf', 'ff' o 'wf'")
+		response := "---------------------\n" +
+			"Error: Ajuste inválido, debe ser 'bf', 'ff' o 'wf'"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -64,9 +75,3 @@ func FDisk(input string) {
 	DiskManager.Fdisk(*size, *path, *name, *unit, *type_, *fit)
 
 }
-
-//fdisk -size=600 -path="/home/benjamin/discos/Disco1.mia" -name=Particion1
-//fdisk -Size=2000 -path=/home/benjamin/discos/Disco1.mia -name=Particion2
-//fdisk -type=E -path=/home/benjamin/discos/Disco1.mia -Unit=K -name=Particion3 -size=300
-//fdisk -size=1 -type=L -unit=M -fit=BF -path=/home/benjamin/discos/Disco1.mia -name="Particion4"
-//fdisk -path=/home/benjamin/discos/Disco2.mia -name=Part3 -Unit=K -size=200

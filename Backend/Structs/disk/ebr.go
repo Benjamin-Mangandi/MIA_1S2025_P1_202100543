@@ -20,7 +20,7 @@ type EBR struct {
 func PrintEBR(data EBR) {
 
 	nameStr := string(bytes.Trim(data.PartName[:], "\x00"))
-	answer := "---------------------\n" +
+	response := "---------------------\n" +
 		"Partición lógica creada correctamente\n" +
 		"Nombre: " + nameStr + "\n" +
 		"Tamaño: " + fmt.Sprintf("%d", data.PartSize) + " bytes\n" +
@@ -28,5 +28,5 @@ func PrintEBR(data EBR) {
 		"Estado: " + fmt.Sprintf("%c", data.PartMount) + "\n" +
 		"Fit: " + fmt.Sprintf("%c", data.PartFit) + "\n" +
 		"---------------------"
-	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, answer)
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

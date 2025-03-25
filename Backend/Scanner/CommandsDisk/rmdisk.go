@@ -2,6 +2,7 @@ package CommandsDisk
 
 import (
 	"Backend/DiskManager"
+	"Backend/Responsehandler"
 	"flag"
 	"fmt"
 	"strings"
@@ -15,15 +16,20 @@ func RmDisk(input string) {
 	// Buscar y extraer los flags del input
 	args := strings.Fields(input)
 	for i := 0; i < len(args); i++ {
-		if strings.HasPrefix(args[i], "-path=") {
-			*path = strings.TrimPrefix(args[i], "-path=")
+		argName := strings.ToLower(args[i])
+		if strings.HasPrefix(argName, "-path=") {
+			*path = strings.TrimPrefix(argName, "-path=")
 			*path = strings.Trim(*path, "\"") // Eliminar comillas si las hay
 		}
+
 	}
 
 	// Validar si se proporcionó el path
 	if *path == "" {
-		fmt.Println("Error: El parámetro -path es obligatorio.")
+		response := "---------------------\n" +
+			"Error: El parámetro -path es obligatorio."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
+		fmt.Println()
 		return
 	}
 

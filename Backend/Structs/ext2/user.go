@@ -1,6 +1,8 @@
 package Ext2
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type User struct {
 	ID          string

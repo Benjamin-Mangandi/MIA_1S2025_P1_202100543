@@ -3,7 +3,7 @@ package CommandsFileSystem
 import (
 	"Backend/FileSystem"
 	"Backend/Globals"
-	"fmt"
+	"Backend/Responsehandler"
 	"strings"
 )
 
@@ -13,22 +13,20 @@ func Cat(params string) {
 
 	// Iterar sobre las coincidencias encontradas
 	for _, match := range matches {
-		flagName := match[1]                      // fileN (ej. file1, file2, file3)
-		flagValue := strings.Trim(match[2], "\"") // Ruta del archivo sin comillas
+		flagName := strings.ToLower(match[1])     // fileN (ej. file1, file2, file3)
+		flagValue := strings.ToLower(match[2])    // Convertir valor a minúsculas si aplica
+		flagValue = strings.Trim(flagValue, "\"") // Eliminar comillas
 
 		files[flagName] = flagValue
 	}
 
 	// Si no se encontraron archivos, mostrar error
 	if len(files) == 0 {
-		fmt.Println("Error: No se especificaron archivos.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No se especificaron archivos."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
-	// Mostrar archivos detectados
-	fmt.Println("Archivos detectados:")
-	for key, value := range files {
-		fmt.Printf("%s -> %s\n", key, value)
-	}
 	FileSystem.Cat(files)
 }

@@ -53,7 +53,7 @@ func Mount(path string, name string) {
 	diskID := generateDiskID(path)
 	if FindPartition(path, name) {
 		response := strings.Repeat("*", 30) + "\n" +
-			"Error: La particion ya esta montada: " + name
+			"Error: La particion ya esta montada: " + name + "\n"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}

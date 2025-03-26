@@ -15,6 +15,7 @@ func RmDisk(input string) {
 
 	// Buscar y extraer los flags del input
 	args := strings.Fields(input)
+
 	for i := 0; i < len(args); i++ {
 		argName := strings.ToLower(args[i])
 		if strings.HasPrefix(argName, "-path=") {

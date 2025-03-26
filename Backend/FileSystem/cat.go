@@ -3,6 +3,7 @@ package FileSystem
 import (
 	"Backend/DiskManager"
 	"Backend/Globals"
+	"Backend/Responsehandler"
 	Ext2 "Backend/Structs/ext2"
 	"Backend/UsersManager"
 	"Backend/Utilities"
@@ -14,15 +15,18 @@ import (
 func Cat(files map[string]string) {
 	// Verificar si hay una sesión activa
 	if !Globals.ActiveUser.Status {
-		fmt.Println("Error: No hay un usuario activo.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No hay un usuario activo en el sistema."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	// Obtener la partición montada asociada a la sesión
-	fmt.Println(Globals.ActiveUser.ID)
 	mountedPartition := DiskManager.GetMountedPartitionByID(Globals.ActiveUser.PartitionID)
 	if mountedPartition.ID == "" {
-		fmt.Println("Error: No se encontró la partición montada.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No se encontró la partición montada."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -43,24 +47,30 @@ func Cat(files map[string]string) {
 
 	// Iterar sobre los archivos solicitados
 	for key, filePath := range files {
-		fmt.Printf("\nArchivo [%s]: %s\n", key, filePath)
+		response := fmt.Sprintf("\nArchivo [%s]: %s\n", key, filePath)
 
 		// Buscar el inodo del archivo en el sistema de archivos
 		inodeIndex := UsersManager.FindFileInode(file, superblock, filePath)
 		if inodeIndex == -1 {
-			fmt.Println("  Error: Archivo no encontrado.")
+			response := strings.Repeat("*", 30) + "\n" +
+				"Error: Archivo no encontrado."
+			Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 			continue
 		}
 
 		// Leer el contenido del archivo
-		content := UsersManager.ReadFileFromInode(file, superblock, inodeIndex)
+		content := Globals.ReadFileFromInode(file, superblock, inodeIndex, Globals.ActiveUser)
 		if content == "" {
-			fmt.Println("  Error: No se pudo leer el contenido del archivo.")
+			response := strings.Repeat("*", 30) + "\n" +
+				"Error: No se tienen permisos para leer el archivo"
+			Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 			continue
 		}
 
 		// Imprimir el contenido del archivo
-		fmt.Println("  Contenido del archivo:")
-		fmt.Println(strings.TrimSpace(content))
+		response += strings.Repeat("-", 30) + "\n" +
+			"  Contenido del archivo:\n" +
+			strings.TrimSpace(content) + "\n"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 	}
 }

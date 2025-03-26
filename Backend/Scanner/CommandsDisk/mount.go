@@ -28,7 +28,7 @@ func Mount(params string) {
 
 	// Validación de campos obligatorios
 	if *path == "" || *name == "" {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: Los parámetros '-path' y '-name' son obligatorios"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return

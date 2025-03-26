@@ -26,7 +26,7 @@ func RmDisk(input string) {
 
 	// Validar si se proporcionó el path
 	if *path == "" {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: El parámetro -path es obligatorio."
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		fmt.Println()

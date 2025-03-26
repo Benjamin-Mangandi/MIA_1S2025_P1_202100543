@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -15,7 +16,7 @@ func Mkdisk(size int, fit string, unit string, path string) {
 
 	err := Utilities.CreateParentDirs(path)
 	if err != nil {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error al crear las carpetas padre"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
@@ -29,7 +30,7 @@ func Mkdisk(size int, fit string, unit string, path string) {
 	case "m":
 		multiplier = 1024 * 1024
 	default:
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: Unidad inválida, debe ser 'k' o 'm'"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return

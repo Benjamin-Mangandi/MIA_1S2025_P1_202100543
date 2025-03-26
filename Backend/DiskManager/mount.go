@@ -43,7 +43,7 @@ func Mount(path string, name string) {
 	}
 
 	if !partitionFound {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: Partición no encontrada o no es una partición primaria"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
@@ -52,7 +52,7 @@ func Mount(path string, name string) {
 	// Generar el ID del disco y verificar si ya tiene particiones montadas
 	diskID := generateDiskID(path)
 	if FindPartition(path, name) {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: La particion ya esta montada: " + name
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
@@ -91,7 +91,7 @@ func Mount(path string, name string) {
 		Start:  partition.Start,
 	})
 
-	// Comentar o eliminar la siguiente línea para evitar escribir en el MBR
+	// Comentar la siguientes líneas para evitar escribir en el MBR
 	// if err := Utilities.WriteObject(file, TempMBR, 0); err != nil {
 	//     fmt.Println("Error: No se pudo sobrescribir el MBR en el archivo")
 	//     return
@@ -162,7 +162,8 @@ func PrintMountedPartitions() {
 
 	// Recorrer discos montados
 	for diskID, partitions := range Globals.MountedPartitions {
-		fullResponse += fmt.Sprintf("---------------------\n * Disco: %s\n", diskID)
+		fullResponse += strings.Repeat("*", 30) + "\n" +
+			" * Disco: " + diskID + "\n"
 
 		// Recorrer particiones montadas en el disco
 		for _, partition := range partitions {

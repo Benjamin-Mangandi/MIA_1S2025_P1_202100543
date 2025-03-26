@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"strings"
 )
 
 func Fdisk(size int, path string, name string, unit string, type_ string, fit string) {
@@ -33,34 +34,34 @@ func Fdisk(size int, path string, name string, unit string, type_ string, fit st
 	// Validar particiones y espacio usado
 	totalPartitions, _, extendedCount, usedSpace := countPartitions(&TempMBR)
 	if totalPartitions >= 4 {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: No se pueden crear más de 4 particiones primarias o extendidas en total."
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	if type_ == "e" && extendedCount > 0 {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: Solo se permite una partición extendida por disco."
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	if type_ == "l" && extendedCount == 0 {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: No se puede crear una partición lógica sin una partición extendida."
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	if int64(usedSpace+int32(size)) > TempMBR.Size {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: No hay suficiente espacio en el disco para crear esta partición."
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 	if usedNames(&TempMBR, name) {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: Ya hay una partición con el nombre: " + name
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
@@ -73,7 +74,7 @@ func Fdisk(size int, path string, name string, unit string, type_ string, fit st
 	if type_ == "p" || type_ == "e" {
 		emptyIndex := findEmptyPartition(&TempMBR)
 		if emptyIndex < 0 {
-			response := "---------------------\n" +
+			response := strings.Repeat("*", 30) + "\n" +
 				"Error: No se encontró espacio en la tabla de particiones."
 			Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 			return

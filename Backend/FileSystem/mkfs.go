@@ -2,6 +2,7 @@ package FileSystem
 
 import (
 	"Backend/DiskManager"
+	"Backend/Responsehandler"
 	Disk "Backend/Structs/disk"
 	Ext2 "Backend/Structs/ext2"
 	"Backend/Utilities"
@@ -13,15 +14,13 @@ import (
 )
 
 func Mkfs(id string, type_ string, fs_ string) {
-	fmt.Println("====== INICIO MKFS ======")
-	fmt.Println("Id:", id)
-	fmt.Println("Type:", type_)
-	fmt.Println("Fs:", fs_)
 
 	// Buscar la partición montada por ID
 	mountedPartition, found := findMountedPartition(id)
 	if !found {
-		fmt.Println("Error: Partición no encontrada o no montada.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: Partición no encontrada o no montada."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -43,31 +42,39 @@ func Mkfs(id string, type_ string, fs_ string) {
 	// Buscar la partición dentro del MBR
 	index := findPartitionName(TempMBR, mountedPartition.Name)
 	if index == -1 {
-		fmt.Println("Error: Partición no encontrada en el MBR.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: Partición no encontrada en el MBR."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	// Validar si la partición ya está marcada como montada
 	if TempMBR.Partitions[index].Status == '1' {
-		fmt.Println("Advertencia: La partición ya está marcada como montada (Status = 1). No se realizará el formateo.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Advertencia: La partición ya está marcada como montada (Status = 1). No se realizará el formateo."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return // Detener el proceso de formateo
 	}
 
 	// Validar tipo de sistema de archivos
 	if fs_ != "2fs" {
-		fmt.Println("Error: Solo está disponible EXT2 (2FS).")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: Solo está disponible EXT2 (2FS)."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	// Cálculo de inodos
 	n := calculateInodes(TempMBR.Partitions[index])
-	fmt.Println("INODOS:", n)
 
 	// Crear y configurar el superbloque
 	newSuperblock := createSuperblock(n, TempMBR.Partitions[index])
 
+	// Obtener la fecha actual en formato "YYYY-MM-DD HH:MM"
+	currentTime := time.Now().Format("2006-01-02 15:04")
+
 	// Crear el sistema de archivos EXT2
-	create_ext2(n, TempMBR.Partitions[index], newSuperblock, "07/03/2025", file)
+	create_ext2(n, TempMBR.Partitions[index], newSuperblock, currentTime, file)
 
 	// Actualizar el ID y el estado de la partición en el MBR
 	copy(TempMBR.Partitions[index].Id[:], []byte(mountedPartition.ID))
@@ -79,10 +86,6 @@ func Mkfs(id string, type_ string, fs_ string) {
 		return
 	}
 
-	fmt.Println("Partición actualizada en el MBR:")
-	Disk.PrintPartition(TempMBR.Partitions[index])
-
-	fmt.Println("====== FIN MKFS ======")
 }
 
 // Busca una partición montada por ID
@@ -93,22 +96,14 @@ func findMountedPartition(id string) (Disk.MountedPartition, bool) {
 				if partition.Status == '1' { // Verifica si está montada
 					return partition, true
 				}
-				fmt.Println("Error: La partición aún no está montada.")
+				response := strings.Repeat("*", 30) + "\n" +
+					"Error: La partición aún no está montada."
+				Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 				return Disk.MountedPartition{}, false
 			}
 		}
 	}
 	return Disk.MountedPartition{}, false
-}
-
-// Encuentra el índice de la partición en el MBR
-func findPartitionIndex(mbr Disk.MBR, id string) int {
-	for i := 0; i < 4; i++ {
-		if mbr.Partitions[i].Size != 0 && strings.Contains(string(mbr.Partitions[i].Id[:]), id) {
-			return i
-		}
-	}
-	return -1
 }
 
 func findPartitionName(mbr Disk.MBR, name string) int {
@@ -155,17 +150,6 @@ func createSuperblock(n int32, partition Disk.Partition) Ext2.Superblock {
 }
 
 func create_ext2(n int32, partition Disk.Partition, newSuperblock Ext2.Superblock, date string, file *os.File) {
-	fmt.Println("====== Start CREATE EXT2 ======")
-	fmt.Println("INODOS:", n)
-
-	// Imprimir Superblock inicial
-	Ext2.PrintSuperblock(newSuperblock)
-	fmt.Println("Date:", date)
-
-	// Obtener tamaños de estructuras para evitar cálculos repetidos
-	inodeSize := int32(binary.Size(Ext2.Inode{}))
-	blockSize := int32(binary.Size(Ext2.Fileblock{}))
-	folderBlockSize := int32(binary.Size(Ext2.Folderblock{}))
 
 	// Escribir bitmaps de inodos y bloques con una sola llamada a WriteObject por bloque
 	inodeBitmap := make([]byte, n)
@@ -202,55 +186,11 @@ func create_ext2(n int32, partition Disk.Partition, newSuperblock Ext2.Superbloc
 		fmt.Println("Error al marcar inodos y bloques usados: ", err)
 		return
 	}
-
-	// Leer e imprimir los inodos después de formatear
-	fmt.Println("====== Imprimiendo Inodos ======")
-	for i := int32(0); i < n; i++ {
-		var inode Ext2.Inode
-		offset := int64(newSuperblock.S_inode_start + i*inodeSize)
-		if err := Utilities.ReadObject(file, &inode, offset); err != nil {
-			fmt.Println("Error al leer inodo:", err)
-			return
-		}
-		Ext2.PrintInode(inode)
-	}
-
-	// Leer e imprimir los Folderblocks y Fileblocks después de formatear
-	fmt.Println("====== Imprimiendo Folderblocks y Fileblocks ======")
-
-	// Imprimir Folderblock en la primera posición
-	var folderblock Ext2.Folderblock
-	folderOffset := int64(newSuperblock.S_block_start)
-	if err := Utilities.ReadObject(file, &folderblock, folderOffset); err != nil {
-		fmt.Println("Error al leer Folderblock:", err)
-		return
-	}
-	Ext2.PrintFolderblock(folderblock)
-
-	// Imprimir Fileblock en la siguiente posición
-	var fileblock Ext2.Fileblock
-	fileOffset := int64(newSuperblock.S_block_start + folderBlockSize)
-	if err := Utilities.ReadObject(file, &fileblock, fileOffset); err != nil {
-		fmt.Println("Error al leer Fileblock:", err)
-		return
-	}
-	Ext2.PrintFileblock(fileblock)
-
-	// Imprimir los siguientes Fileblocks (si hay más de uno)
-	for i := int32(1); i < 3*n; i++ {
-		var fileblock Ext2.Fileblock
-		fileOffset := int64(newSuperblock.S_block_start + folderBlockSize + i*blockSize)
-		if err := Utilities.ReadObject(file, &fileblock, fileOffset); err != nil {
-			fmt.Println("Error al leer Fileblock:", err)
-			return
-		}
-		Ext2.PrintFileblock(fileblock)
-	}
-
+	response := strings.Repeat("-", 40) + "\n" +
+		"SISTEMA EXT2 Creado exitosamente.\n"
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 	// Imprimir el Superblock final
 	Ext2.PrintSuperblock(newSuperblock)
-
-	fmt.Println("====== End CREATE EXT2 ======")
 }
 
 // Función auxiliar para inicializar inodos y bloques

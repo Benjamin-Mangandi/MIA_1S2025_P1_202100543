@@ -9,7 +9,7 @@ import (
 func Mounted(params string) {
 	// Verificar que no se pasen parámetros
 	if strings.TrimSpace(params) != "" {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: El comando 'mounted' no acepta parámetros"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return

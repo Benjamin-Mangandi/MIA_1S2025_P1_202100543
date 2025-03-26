@@ -3,6 +3,7 @@ package CommandsFileSystem
 import (
 	"Backend/FileSystem"
 	"Backend/Globals"
+	"Backend/Responsehandler"
 	"flag"
 	"fmt"
 	"strings"
@@ -34,12 +35,11 @@ func Mkfs(params string) {
 
 	// Validar que 'id' no esté vacío
 	if *id == "" {
-		fmt.Println("Error: El parámetro 'id' es obligatorio.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: El parámetro 'id' es obligatorio."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
-	FileSystem.Mkfs(strings.ToLower(*id), *type_, *fs_)
+	FileSystem.Mkfs(strings.ToLower(*id), strings.ToLower(*type_), *fs_)
 }
-
-//mkfs -id=431a
-//mkfs -type=full -id=431a

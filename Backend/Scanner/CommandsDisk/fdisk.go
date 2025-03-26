@@ -41,37 +41,37 @@ func FDisk(input string) {
 
 	// Validaciones de parámetros
 	if *size <= 0 {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: El tamaño de la particion debe ser mayor a 0"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 	if *path == "" {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: Se requiere la ruta del archivo"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 	if !validUnits[*unit] {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: Unidad inválida, debe ser 'b', 'k' o 'm'"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 	if !validTypes[*type_] {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: Tipo inválido, debe ser 'p' (primaria), 'e' (extendida) o 'l' (logica)"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 	if !validFits[*fit] {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: Ajuste inválido, debe ser 'bf', 'ff' o 'wf'"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
-	// Llamar a la función Fdisk con los valores procesados
+	// Llamar a la función Fdisk
 	DiskManager.Fdisk(*size, *path, *name, *unit, *type_, *fit)
 
 }

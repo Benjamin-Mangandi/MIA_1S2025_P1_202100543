@@ -77,7 +77,7 @@ func AnalyzeCommand(command string, params string) {
 	case strings.EqualFold(command, "mkdir"):
 		CommandsFilesFolders.Mkdir(params)
 	default:
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: Comando inválido o no encontrado: " + string(command)
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 	}

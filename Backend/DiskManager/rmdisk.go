@@ -4,14 +4,15 @@ import (
 	"Backend/Responsehandler"
 	"fmt"
 	"os"
+	"strings"
 )
 
 func RmDisk(path string) {
 
 	// Verificar si el archivo existe antes de eliminarlo
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		response := fmt.Sprintf("---------------------\n"+
-			"Error: No se encontró el disco en la ruta '%s'.\n", path)
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No se encontró el disco en la ruta" + path
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 
 		return

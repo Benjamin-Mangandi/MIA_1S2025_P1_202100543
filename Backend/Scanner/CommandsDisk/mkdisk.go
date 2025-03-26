@@ -28,14 +28,14 @@ func MkDisk(params string) {
 	}
 	// Validaciones
 	if *size <= 0 {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: El tamaño debe ser mayor a 0"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	if *path == "" {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: Se requiere especificar un path"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
@@ -43,7 +43,7 @@ func MkDisk(params string) {
 
 	// Validar unidad
 	if *unit != "k" && *unit != "m" {
-		response := "---------------------\n" +
+		response := strings.Repeat("*", 30) + "\n" +
 			"Error: Unidad inválida, debe ser 'k' o 'm'"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return

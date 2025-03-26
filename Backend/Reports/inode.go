@@ -66,7 +66,8 @@ func CreateInode_Report(path string, id string) {
 			}
 		}
 
-		dotContent += fmt.Sprintf("<tr><td>i_perm</td><td>%d</td></tr>\n", inode.I_perm[:])
+		dotContent += fmt.Sprintf("<tr><td>i_perm</td><td>%s</td></tr>\n", string(inode.I_perm[:]))
+
 		dotContent += "</table>>];\n"
 	}
 	dotContent += "}\n"

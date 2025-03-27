@@ -21,7 +21,7 @@ func Login(params string) {
 	parsedFlags := make(map[string]string)
 
 	for _, match := range matches {
-		flagName := match[1]                      // Flag tal cual fue escrito
+		flagName := strings.ToLower(match[1])
 		flagValue := strings.Trim(match[2], "\"") // Quita comillas si las tiene
 
 		// Asigna el flag en la estructura fs
@@ -39,5 +39,5 @@ func Login(params string) {
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
-	UsersManager.Login(*user, *pass, *id)
+	UsersManager.Login(*user, *pass, strings.ToLower(*id))
 }

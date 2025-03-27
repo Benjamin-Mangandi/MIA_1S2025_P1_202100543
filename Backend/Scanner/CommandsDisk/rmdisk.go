@@ -20,7 +20,7 @@ func RmDisk(input string) {
 		argName := strings.ToLower(args[i])
 		if strings.HasPrefix(argName, "-path=") {
 			*path = strings.TrimPrefix(argName, "-path=")
-			*path = strings.Trim(*path, "\"") // Eliminar comillas si las hay
+			*path = strings.ToLower(strings.Trim(*path, "\"")) // Eliminar comillas si las hay
 		}
 
 	}

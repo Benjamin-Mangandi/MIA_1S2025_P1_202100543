@@ -2,6 +2,7 @@ package CommandsUsers
 
 import (
 	"Backend/Globals"
+	"Backend/Responsehandler"
 	"Backend/UsersManager"
 	"flag"
 	"fmt"
@@ -31,16 +32,11 @@ func Login(params string) {
 		parsedFlags[flagName] = flagValue // Guardar para depuración
 	}
 
-	// Imprimir parámetros detectados para depuración
-	fmt.Println("====== Parámetros Escaneados ======")
-	for key, value := range parsedFlags {
-		fmt.Printf("%s: %s\n", key, value)
-	}
-	fmt.Println("===================================")
-
 	// Validación de campos obligatorios
 	if *user == "" || *pass == "" || *id == "" {
-		fmt.Println("Error: Los parámetros '-user', '-pass' y '-id' son obligatorios")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: Los parámetros '-user', '-pass' y '-id' son obligatorios"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 	UsersManager.Login(*user, *pass, *id)

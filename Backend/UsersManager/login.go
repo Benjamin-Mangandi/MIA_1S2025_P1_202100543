@@ -3,6 +3,7 @@ package UsersManager
 import (
 	"Backend/DiskManager"
 	"Backend/Globals"
+	"Backend/Responsehandler"
 	Ext2 "Backend/Structs/ext2"
 	"Backend/Utilities"
 	"bytes"
@@ -13,12 +14,20 @@ import (
 )
 
 func Login(user, pass, id string) bool {
+
+	if Globals.ActiveUser.Status {
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: Se debe cerrar la sesion anterior primero"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
+	}
 	// 1. Buscar la partición montada por ID
 	mountedPartition := DiskManager.GetMountedPartitionByID(id)
 
 	// Verificar si la partición es inválida (ID vacío significa que no se encontró)
 	if mountedPartition.ID == "" {
-		fmt.Println("Error: Partición no encontrada o no montada.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: Partición no encontrada o no montada."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return false
 	}
 
@@ -38,9 +47,11 @@ func Login(user, pass, id string) bool {
 	}
 
 	// 4. Buscar el inodo del archivo users.txt
-	inodeIndex := FindFileInode(file, superblock, "users.txt")
+	inodeIndex := FindFileInode(file, superblock, "/users.txt")
 	if inodeIndex == -1 {
-		fmt.Println("Error: Archivo users.txt no encontrado.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: Archivo users.txt no encontrado."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return false
 	}
 
@@ -62,10 +73,6 @@ func Login(user, pass, id string) bool {
 			if userID == "0" {
 				continue // Saltar usuarios eliminados
 			}
-			fmt.Println("guardada:" + username)
-			fmt.Println("escrita:" + user)
-			fmt.Println("guardada:" + password)
-			fmt.Println("escrita:" + pass)
 			if username == user && password == pass {
 				// Guardar usuario en la sesión activa
 				Globals.ActiveUser = Ext2.User{
@@ -77,15 +84,14 @@ func Login(user, pass, id string) bool {
 					Status:      true,
 					PartitionID: mountedPartition.ID,
 				}
-
-				fmt.Println("Inicio de sesión exitoso.")
 				Ext2.PrintUser(Globals.ActiveUser)
 				return true
 			}
 		}
 	}
-
-	fmt.Println("Error: Usuario o contraseña incorrectos o usuario eliminado.")
+	response := strings.Repeat("*", 30) + "\n" +
+		"Error: Usuario o contraseña incorrectos o usuario eliminado."
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 	return false
 }
 
@@ -138,7 +144,9 @@ func FindFileInode(file *os.File, superblock Ext2.Superblock, filePath string) i
 		}
 
 		if !found {
-			fmt.Println("Archivo no encontrado en el sistema de archivos:", filePath)
+			response := strings.Repeat("*", 30) + "\n" +
+				"Archivo no encontrado en el sistema de archivos:" + filePath
+			Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 			return -1
 		}
 	}

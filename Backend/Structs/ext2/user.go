@@ -1,7 +1,9 @@
 package Ext2
 
 import (
+	"Backend/Responsehandler"
 	"fmt"
+	"strings"
 )
 
 type User struct {
@@ -14,18 +16,24 @@ type User struct {
 	PartitionID string
 }
 
-// PrintUser imprime los datos del usuario en un formato legible
+// PrintUser imprime los datos del usuario en un formato legible y los agrega al Responsehandler
 func PrintUser(user User) {
 	if !user.Status {
-		fmt.Println("Usuario eliminado o inactivo")
+		response := "Usuario eliminado o inactivo"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
+		fmt.Println(response)
 		return
 	}
 
-	fmt.Println("====== Información del Usuario ======")
-	fmt.Printf("ID:       %s\n", user.ID)
-	fmt.Printf("Tipo:     %s\n", user.Type)
-	fmt.Printf("Grupo:    %s\n", user.Group)
-	fmt.Printf("Nombre:   %s\n", user.Name)
-	fmt.Printf("Password: %s\n", user.Password)
-	fmt.Println("=====================================")
+	response := strings.Repeat("-", 40) + "\n" +
+		"Inicio de sesión exitoso.\n" +
+		strings.Repeat("-", 40) + "\n" +
+		fmt.Sprintf("ID:       %s\n", user.ID) +
+		fmt.Sprintf("Tipo:     %s\n", user.Type) +
+		fmt.Sprintf("Grupo:    %s\n", user.Group) +
+		fmt.Sprintf("Nombre:   %s\n", user.Name) +
+		fmt.Sprintf("Password: %s\n", user.Password)
+
+	// Agregar la información al response
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

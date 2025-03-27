@@ -2,18 +2,22 @@ package UsersManager
 
 import (
 	"Backend/Globals"
+	"Backend/Responsehandler"
 	Ext2 "Backend/Structs/ext2"
-	"fmt"
+	"strings"
 )
 
 func Logout() {
 	if !Globals.ActiveUser.Status {
-		fmt.Println("Error: No hay ningún usuario activo")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No hay ningún usuario activo"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	// Resetear la sesión
 	Globals.ActiveUser = Ext2.User{}
-
-	fmt.Println("Sesión cerrada exitosamente.")
+	response := strings.Repeat("-", 40) + "\n" +
+		"Sesión cerrada exitosamente." + "\n"
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

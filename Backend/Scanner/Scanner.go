@@ -25,21 +25,26 @@ func getCommandAndParams(input string) (string, string) {
 	return command, params
 }
 
-// Escanea y procesa los comandos ingresados por el usuario
 func Scan(input string) {
 	lines := strings.Split(input, "\n") // Separar por saltos de línea
 	for _, line := range lines {
-		command, params := getCommandAndParams(line)
-		if command == "" {
-			fmt.Println("Error: No se ingresó un comando válido.")
+		line = strings.TrimSpace(line) // Eliminar espacios en blanco
+
+		if strings.HasPrefix(line, "#") { // Si es un comentario
+			response := line + "\n"
+			Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 			continue
 		}
+
+		command, params := getCommandAndParams(line)
+		if command == "" {
+			continue
+		}
+
 		fmt.Printf("Comando: %s\nParámetros: %s\n", command, params)
-		// Llamar a la función para analizar el comando
 		AnalyzeCommand(command, params)
 	}
 }
-
 func AnalyzeCommand(command string, params string) {
 	switch {
 	case strings.EqualFold(command, "mkdisk"):

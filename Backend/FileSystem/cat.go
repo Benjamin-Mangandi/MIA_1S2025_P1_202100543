@@ -47,7 +47,8 @@ func Cat(files map[string]string) {
 
 	// Iterar sobre los archivos solicitados
 	for key, filePath := range files {
-		response := fmt.Sprintf("\nArchivo [%s]: %s\n", key, filePath)
+		response := strings.Repeat("-", 40) +
+			fmt.Sprintf("\nArchivo [%s]: %s\n", key, filePath)
 
 		// Buscar el inodo del archivo en el sistema de archivos
 		inodeIndex := UsersManager.FindFileInode(file, superblock, filePath)
@@ -68,8 +69,7 @@ func Cat(files map[string]string) {
 		}
 
 		// Imprimir el contenido del archivo
-		response += strings.Repeat("-", 30) + "\n" +
-			"  Contenido del archivo:\n" +
+		response += "  Contenido del archivo:\n" +
 			strings.TrimSpace(content) + "\n"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 	}

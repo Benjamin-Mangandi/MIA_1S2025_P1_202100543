@@ -118,7 +118,7 @@ func CreateMBR_Report(path string, id string) {
 		fmt.Println("Salida del comando:", string(output))
 		return
 	}
-	response := strings.Repeat("*", 30) + "\n" +
+	response := strings.Repeat("-", 40) + "\n" +
 		"Reporte generado exitosamente en: " + path + "\n"
 	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

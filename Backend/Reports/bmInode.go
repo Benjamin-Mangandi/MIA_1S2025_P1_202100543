@@ -2,6 +2,7 @@ package Reports
 
 import (
 	"Backend/DiskManager"
+	"Backend/Responsehandler"
 	Disk "Backend/Structs/disk"
 	Ext2 "Backend/Structs/ext2"
 	"Backend/Utilities"
@@ -14,9 +15,18 @@ import (
 func CreateBmInodeReport(path string, id string) {
 	// Buscar la partición montada
 	path = fixPath(path)
+	err := Utilities.CreateParentDirs(path)
+	if err != nil {
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error al crear las carpetas padre" + "\n"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
+		return
+	}
 	mountedPartition := DiskManager.GetMountedPartitionByID(id)
 	if mountedPartition.ID == "" {
-		fmt.Println("Error: No se encontró la partición montada.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No se encontró la partición montada." + "\n"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -42,7 +52,6 @@ func CreateBmInodeReport(path string, id string) {
 		return
 	}
 
-	// Utilizar S_inodes_count como total de inodos
 	totalInodes := superblock.S_inodes_count
 
 	// Calcular cuántos bytes necesita el bitmap (cada byte tiene 8 bits)
@@ -102,5 +111,7 @@ func CreateBmInodeReport(path string, id string) {
 		return
 	}
 
-	fmt.Println("Reporte del bitmap de inodos generado correctamente:", path)
+	response := strings.Repeat("-", 40) + "\n" +
+		"Reporte del bitmap de inodos generado correctamente:" + path + "\n"
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

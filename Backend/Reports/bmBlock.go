@@ -2,6 +2,7 @@ package Reports
 
 import (
 	"Backend/DiskManager"
+	"Backend/Responsehandler"
 	Disk "Backend/Structs/disk"
 	Ext2 "Backend/Structs/ext2"
 	"Backend/Utilities"
@@ -14,9 +15,18 @@ import (
 func CreateBmBlockReport(path string, id string) {
 	// Buscar la partición montada
 	path = fixPath(path)
+	err := Utilities.CreateParentDirs(path)
+	if err != nil {
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error al crear las carpetas padre" + "\n"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
+		return
+	}
 	mountedPartition := DiskManager.GetMountedPartitionByID(id)
 	if mountedPartition.ID == "" {
-		fmt.Println("Error: No se encontró la partición montada.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No se encontró la partición montada." + "\n"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -42,7 +52,6 @@ func CreateBmBlockReport(path string, id string) {
 		return
 	}
 
-	// Usar S_blocks_count para el total de bloques
 	totalBlocks := superblock.S_blocks_count
 	// Calcular cuántos bytes necesita el bitmap (cada byte tiene 8 bits)
 	byteCount := (totalBlocks + 7) / 8
@@ -98,6 +107,7 @@ func CreateBmBlockReport(path string, id string) {
 		fmt.Println("Error al escribir en el archivo de reporte:", err)
 		return
 	}
-
-	fmt.Println("Reporte del bitmap de bloques generado correctamente:", path)
+	response := strings.Repeat("-", 40) + "\n" +
+		"Reporte del bitmap de bloques generado correctamente:" + path + "\n"
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

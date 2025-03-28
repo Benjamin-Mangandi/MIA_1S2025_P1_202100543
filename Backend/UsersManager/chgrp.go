@@ -10,17 +10,17 @@ import (
 	"strings"
 )
 
-func Rmusr(name string) {
+func Chgrp(user, group string) {
 	// Verificar si hay una sesión activa
 	if !Globals.ActiveUser.Status {
 		response := strings.Repeat("*", 30) + "\n" +
-			"Error: No hay un usuario activo."
+			"Error: No hay un usuario activo." + "\n"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 	if Globals.ActiveUser.Name != "root" {
 		response := strings.Repeat("*", 30) + "\n" +
-			"Error: Solo el usuario root puede eliminar usuarios"
+			"Error: Solo el usuario root puede eliminar usuarios" + "\n"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
@@ -29,7 +29,7 @@ func Rmusr(name string) {
 	mountedPartition := DiskManager.GetMountedPartitionByID(Globals.ActiveUser.PartitionID)
 	if mountedPartition.ID == "" {
 		response := strings.Repeat("*", 30) + "\n" +
-			"Error: No se encontró la partición montada."
+			"Error: No se encontró la partición montada." + "\n"
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
@@ -60,29 +60,58 @@ func Rmusr(name string) {
 	fileContent := ReadFileFromInode(file, superblock, inodeIndex)
 	if fileContent == "" {
 		response := strings.Repeat("*", 30) + "\n" +
-			"Error: No se pudo leer el archivo users.txt."
+			"Error: No se pudo leer el archivo users.txt." + "\n"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
+		return
+	}
+	// Verificar si el usuario existe y obtener su línea
+	lines := strings.Split(fileContent, "\n")
+	userFound := false
+	groupExists := false
+
+	for _, line := range lines {
+		parts := strings.Split(line, ",")
+		if len(parts) == 3 && parts[1] == "G" && parts[2] == group {
+			groupExists = true
+		}
+		if len(parts) == 5 && parts[1] == "U" && parts[3] == user {
+			userFound = true
+		}
+	}
+
+	if !userFound {
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: El usuario especificado no existe." + "\n"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
+		return
+	}
+	if !groupExists {
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: El grupo especificado no existe."
 		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
-	// Modificar la línea del grupo
-	lines := strings.Split(fileContent, "\n")
+	// Modificar la línea del usuario para cambiar su grupo sin perder la contraseña
 	for i, line := range lines {
 		parts := strings.Split(line, ",")
-		if len(parts) == 5 && parts[1] == "U" && parts[3] == name {
-			parts[0] = "0" // Marcar el usuario como eliminado
-			lines[i] = strings.Join(parts, ",")
+		if len(parts) == 5 && parts[1] == "U" && parts[3] == user {
+			lines[i] = fmt.Sprintf("%s,U,%s,%s,%s", parts[0], user, group, parts[4]) // Se mantiene la contraseña
 			break
 		}
 	}
 
-	// Escribir el contenido actualizado en users.txt
+	// Unir el contenido actualizado y escribirlo de vuelta en users.txt
 	newContent := strings.Join(lines, "\n")
 	if err := WriteFileToInode(file, &superblock, inodeIndex, newContent, mountedPartition); err != nil {
-		fmt.Println("Error: No se pudo escribir en users.txt")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No se pudo actualizar el archivo users.txt."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
-	response := strings.Repeat("-", 40) + "\n" +
-		"Usuario eliminado correctamente:" + name + "\n"
+
+	response := strings.Repeat("*", 30) + "\n" +
+		"El grupo del usuario ha sido actualizado correctamente: " + user + "\n"
 	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
+
 }

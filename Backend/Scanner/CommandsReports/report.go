@@ -32,13 +32,6 @@ func Report(params string) {
 		parsedFlags[flagName] = flagValue // Guardar para depuración
 	}
 
-	// Imprimir parámetros detectados para depuración
-	fmt.Println("====== Parámetros Escaneados ======")
-	for key, value := range parsedFlags {
-		fmt.Printf("%s: %s\n", key, value)
-	}
-	fmt.Println("===================================")
-
 	// Validación de campos obligatorios
 	if *name == "" || *path == "" || *id == "" {
 		fmt.Println("Error: Los parámetros '-name', '-path' y '-id' son obligatorios")
@@ -74,7 +67,7 @@ func Report(params string) {
 		Reports.CreateSbReport(*path, *id)
 	}
 	if *name == "file" {
-		fmt.Println("LLamando a la funcion para bm_block")
+		Reports.CreateFileReport(*path, *id, *path_file_ls)
 	}
 	if *name == "is" {
 		fmt.Println("LLamando a la funcion para bm_block")

@@ -3,6 +3,7 @@ package UsersManager
 import (
 	"Backend/DiskManager"
 	"Backend/Globals"
+	"Backend/Responsehandler"
 	Ext2 "Backend/Structs/ext2"
 	"Backend/Utilities"
 	"fmt"
@@ -14,18 +15,24 @@ import (
 func Mkusr(name string, pass string, group string) {
 	// Verificar si hay una sesión activa
 	if !Globals.ActiveUser.Status {
-		fmt.Println("Error: No hay un usuario activo.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No hay un usuario activo."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 	if Globals.ActiveUser.Name != "root" {
-		fmt.Println("Error: Solo el usuario root puede crear usuarios.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: Solo el usuario root puede crear usuarios."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	// Obtener la partición montada asociada a la sesión
 	mountedPartition := DiskManager.GetMountedPartitionByID(Globals.ActiveUser.PartitionID)
 	if mountedPartition.ID == "" {
-		fmt.Println("Error: No se encontró la partición montada.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No se encontró la partición montada."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -54,7 +61,9 @@ func Mkusr(name string, pass string, group string) {
 	// Leer el contenido actual de users.txt
 	fileContent := ReadFileFromInode(file, superblock, inodeIndex)
 	if fileContent == "" {
-		fmt.Println("Error: No se pudo leer el archivo users.txt.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No se pudo leer el archivo users.txt."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -78,14 +87,18 @@ func Mkusr(name string, pass string, group string) {
 			}
 			// Verificar si el usuario ya existe
 			if parts[3] == name {
-				fmt.Println("Error: El usuario ya existe.")
+				response := strings.Repeat("*", 30) + "\n" +
+					"Error: El usuario ya existe."
+				Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 				return
 			}
 		}
 	}
 
 	if !groupExists {
-		fmt.Println("Error: El grupo especificado no existe.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: El grupo especificado no existe."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -93,12 +106,14 @@ func Mkusr(name string, pass string, group string) {
 	newUser := fmt.Sprintf("%d,U,%s,%s,%s\n", highestID+1, group, name, pass)
 	// Escribir el contenido actualizado en users.txt
 	newContent := fileContent + newUser
-	if err := WriteFileToInode(file, superblock, inodeIndex, newContent, mountedPartition); err != nil {
+	if err := WriteFileToInode(file, &superblock, inodeIndex, newContent, mountedPartition); err != nil {
 		fmt.Println("Error: No se pudo escribir en users.txt.")
 		return
 	}
 
-	fmt.Println("Usuario creado exitosamente:", name)
+	response := strings.Repeat("-", 40) + "\n" +
+		"Usuario creado exitosamente:" + name + "\n"
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }
 
 func AllocateNewBlock(superblock *Ext2.Superblock, file *os.File) int {

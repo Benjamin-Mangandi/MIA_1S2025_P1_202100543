@@ -3,6 +3,7 @@ package UsersManager
 import (
 	"Backend/DiskManager"
 	"Backend/Globals"
+	"Backend/Responsehandler"
 	Ext2 "Backend/Structs/ext2"
 	"Backend/Utilities"
 	"fmt"
@@ -12,18 +13,24 @@ import (
 func Rmgrp(name string) {
 	// Verificar si hay una sesión activa
 	if !Globals.ActiveUser.Status {
-		fmt.Println("Error: No hay un usuario activo.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No hay un usuario activo."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 	if Globals.ActiveUser.Name != "root" {
-		fmt.Println("Error: Solo el usuario root puede crear grupos")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: Solo el usuario root puede eliminar grupos"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	// Obtener la partición montada asociada a la sesión
 	mountedPartition := DiskManager.GetMountedPartitionByID(Globals.ActiveUser.PartitionID)
 	if mountedPartition.ID == "" {
-		fmt.Println("Error: No se encontró la partición montada.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No se encontró la partición montada."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -52,7 +59,9 @@ func Rmgrp(name string) {
 	// Leer el contenido actual de users.txt
 	fileContent := ReadFileFromInode(file, superblock, inodeIndex)
 	if fileContent == "" {
-		fmt.Println("Error: No se pudo leer el archivo users.txt.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No se pudo leer el archivo users.txt."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -69,10 +78,11 @@ func Rmgrp(name string) {
 
 	// Escribir el contenido actualizado en users.txt
 	newContent := strings.Join(lines, "\n")
-	if err := WriteFileToInode(file, superblock, inodeIndex, newContent, mountedPartition); err != nil {
+	if err := WriteFileToInode(file, &superblock, inodeIndex, newContent, mountedPartition); err != nil {
 		fmt.Println("Error: No se pudo escribir en users.txt")
 		return
 	}
-
-	fmt.Println("Grupo eliminado correctamente:", name)
+	response := strings.Repeat("-", 40) + "\n" +
+		"Grupo eliminado correctamente:" + name + "\n"
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

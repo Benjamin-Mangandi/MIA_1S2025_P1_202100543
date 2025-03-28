@@ -2,6 +2,8 @@ package CommandsUsers
 
 import (
 	"Backend/Globals"
+	"Backend/Responsehandler"
+	"Backend/UsersManager"
 	"flag"
 	"fmt"
 	"strings"
@@ -17,7 +19,7 @@ func Chgrp(params string) {
 	parsedFlags := make(map[string]string)
 
 	for _, match := range matches {
-		flagName := match[1]                      // Nombre del flag
+		flagName := strings.ToLower(match[1])     // Nombre del flag
 		flagValue := strings.Trim(match[2], "\"") // Quitar comillas
 
 		// Asigna el flag en la estructura fs
@@ -28,22 +30,20 @@ func Chgrp(params string) {
 		parsedFlags[flagName] = flagValue // Guardar para depuración
 	}
 
-	// Imprimir parámetros detectados para depuración
-	fmt.Println("====== Parámetros Escaneados ======")
-	for key, value := range parsedFlags {
-		fmt.Printf("%s: %s\n", key, value)
-	}
-	fmt.Println("===================================")
-
 	// Verificar que el parámetro -name se haya ingresado
 	if *user == "" || *group == "" {
-		fmt.Println("Error: los parametros '-user' '-grp' son obligatorios")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: los parametros '-user' '-grp' son obligatorios"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	// Verificar que el nombre del usuario no sea "root"
 	if strings.ToLower(*user) == "root" {
-		fmt.Println("Error: No se puede mover el grupo del usuario 'root'")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No se puede mover el grupo del usuario 'root'"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
+	UsersManager.Chgrp(*user, *group)
 }

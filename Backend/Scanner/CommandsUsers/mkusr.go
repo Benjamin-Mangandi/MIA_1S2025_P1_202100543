@@ -2,6 +2,7 @@ package CommandsUsers
 
 import (
 	"Backend/Globals"
+	"Backend/Responsehandler"
 	"Backend/UsersManager"
 	"flag"
 	"fmt"
@@ -19,7 +20,7 @@ func Mkusr(params string) {
 	parsedFlags := make(map[string]string)
 
 	for _, match := range matches {
-		flagName := match[1]                      // Nombre del flag
+		flagName := strings.ToLower(match[1])     // Nombre del flag
 		flagValue := strings.Trim(match[2], `"'`) // Quitar comillas simples y dobles
 
 		// Asigna el flag en la estructura fs
@@ -30,30 +31,27 @@ func Mkusr(params string) {
 		parsedFlags[flagName] = flagValue // Guardar para depuración
 	}
 
-	// Imprimir parámetros detectados para depuración
-	fmt.Println("====== Parámetros Escaneados ======")
-	for key, value := range parsedFlags {
-		fmt.Printf("%s: %s\n", key, value)
-	}
-	fmt.Println("===================================")
-
 	// Verificar que los parámetros sean válidos
-	if *user == "" {
-		fmt.Println("Error: el parámetro '-user' es obligatorio")
+	if *user == "" || *pass == "" || *group == "" {
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: Los parámetros '-user', '-pass' y '-group' son obligatorios"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
-	if *pass == "" {
-		fmt.Println("Error: el parámetro '-pass' es obligatorio")
-		return
-	}
-	if *group == "" {
-		fmt.Println("Error: el parámetro '-grp' es obligatorio")
+
+	// Validar que ningún parámetro tenga más de 10 caracteres
+	if len(*user) > 10 || len(*pass) > 10 || len(*group) > 10 {
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: Los parámetros '-user', '-pass' y '-group' no pueden tener más de 10 caracteres."
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
 	// Verificar que el nombre del usuario no sea "root"
 	if strings.ToLower(*user) == "root" {
-		fmt.Println("Error: No se puede crear un usuario con el nombre 'root'")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No se puede crear un usuario con el nombre 'root'"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 

@@ -21,7 +21,6 @@ func MkFile(params string) {
 	rFlagPresent := false // Variable para rastrear si -r está presente sin valor
 
 	for _, match := range matches {
-		fmt.Println(match[1])
 		flagName := match[1]                      // Nombre del flag
 		flagValue := strings.Trim(match[2], "\"") // Quitar comillas
 

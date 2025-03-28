@@ -2,6 +2,7 @@ package Reports
 
 import (
 	"Backend/DiskManager"
+	"Backend/Responsehandler"
 	Disk "Backend/Structs/disk"
 	"Backend/Utilities"
 	"fmt"
@@ -13,9 +14,18 @@ import (
 func CreateDiskReport(path string, id string) {
 	// Buscar la partición montada
 	path = fixPath(path)
+	err := Utilities.CreateParentDirs(path)
+	if err != nil {
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error al crear las carpetas padre" + "\n"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
+		return
+	}
 	mountedPartition := DiskManager.GetMountedPartitionByID(id)
 	if mountedPartition.ID == "" {
-		fmt.Println("Error: No se encontró la partición montada.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No se encontró la partición montada." + "\n"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -41,9 +51,7 @@ func CreateDiskReport(path string, id string) {
 		concentrate=True;
 		rankdir=TB;
 		node [shape=record];
-
 		title [label="Reporte DISK" shape=plaintext fontname="Helvetica,Arial,sans-serif"];
-
 		dsk [label="`
 
 	// Calcular el tamaño total del disco y el tamaño usado
@@ -62,13 +70,12 @@ func CreateDiskReport(path string, id string) {
 
 			// Convertir Part_name a string y eliminar los caracteres nulos
 			partName := strings.TrimRight(string(part.Name[:]), "\x00")
-			fmt.Println(part.Type)
 			if part.Type == 'p' {
 				// Partición primaria
-				dotContent += fmt.Sprintf("|{Primaria %s\\n%.2f%%}", partName, percentage)
+				dotContent += fmt.Sprintf("|{Primaria\\n%s\\n%.2f%%}", partName, percentage)
 			} else if part.Type == 'e' {
 				// Partición extendida
-				dotContent += fmt.Sprintf("|{Extendida %.2f%%|{", percentage)
+				dotContent += fmt.Sprintf("|{Extendida\\n%.2f%%|{", percentage)
 				ebrStart := part.Start
 				ebrCount := 0
 				ebrUsedSize := int32(0)
@@ -78,9 +85,6 @@ func CreateDiskReport(path string, id string) {
 						fmt.Println("Error al leer el EBR:", err)
 						return
 					}
-					fmt.Printf("Calculando porcentaje de EBR: PartSize=%d, TotalSize=%d, Porcentaje=%.10f\n",
-						ebr.PartSize, totalSize, (float64(ebr.PartSize)/float64(totalSize))*100)
-					fmt.Printf("EBR leído: Start=%d, Size=%d, Next=%d\n", ebr.PartStart, ebr.PartSize, ebr.PartNext)
 					ebrName := strings.TrimRight(string(ebr.PartName[:]), "\x00")
 					ebrPercentage := (float64(ebr.PartSize) / float64(totalSize)) * 100
 					ebrUsedSize += ebr.PartSize
@@ -89,7 +93,7 @@ func CreateDiskReport(path string, id string) {
 					if ebrCount > 0 {
 						dotContent += "|"
 					}
-					dotContent += fmt.Sprintf("{EBR|Lógica %s\\n%.2f%%}", ebrName, ebrPercentage)
+					dotContent += fmt.Sprintf("{EBR|Lógica\\n %s\\n%.2f%%}", ebrName, ebrPercentage)
 
 					// Actualizar el inicio para el próximo EBR
 					ebrStart = ebr.PartNext
@@ -100,7 +104,7 @@ func CreateDiskReport(path string, id string) {
 				extendedFreeSize := part.Size - ebrUsedSize
 				if extendedFreeSize > 0 {
 					extendedFreePercentage := (float64(extendedFreeSize) / float64(totalSize)) * 100
-					dotContent += fmt.Sprintf("|Libre %.2f%%", extendedFreePercentage)
+					dotContent += fmt.Sprintf("|Libre\\n %.2f%%", extendedFreePercentage)
 				}
 
 				dotContent += "}}"
@@ -112,7 +116,7 @@ func CreateDiskReport(path string, id string) {
 	freeSize := totalSize - int64(usedSize)
 	if freeSize > 0 {
 		freePercentage := (float64(freeSize) / float64(totalSize)) * 100
-		dotContent += fmt.Sprintf("|Libre %.2f%%", freePercentage)
+		dotContent += fmt.Sprintf("|Libre\\n %.2f%%", freePercentage)
 	}
 
 	// Cerrar el nodo de disco y completar el DOT
@@ -122,7 +126,8 @@ func CreateDiskReport(path string, id string) {
 	}`
 
 	// Guardar el código Graphviz en un archivo temporal
-	tempDotPath := "/home/benjamin/disk_report.dot"
+	tempDotPath := "/home/user/disk_report.dot"
+	tempDotPath = fixPath(tempDotPath)
 	if err := os.WriteFile(tempDotPath, []byte(dotContent), 0644); err != nil {
 		fmt.Println("Error al escribir el archivo .dot:", err)
 		return
@@ -136,5 +141,7 @@ func CreateDiskReport(path string, id string) {
 		return
 	}
 
-	fmt.Println("Reporte generado exitosamente en:", path)
+	response := strings.Repeat("*", 30) + "\n" +
+		"Reporte generado exitosamente en: " + path + "\n"
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

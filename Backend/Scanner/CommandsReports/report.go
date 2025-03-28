@@ -3,6 +3,7 @@ package CommandsReports
 import (
 	"Backend/Globals"
 	"Backend/Reports"
+	"Backend/Responsehandler"
 	"flag"
 	"fmt"
 	"strings"
@@ -13,7 +14,7 @@ func Report(params string) {
 	name := fs.String("name", "", "Tipo de reporte")
 	path := fs.String("path", "", "Ubicacion donde se creara el reporte")
 	id := fs.String("id", "", "ID de la particion")
-	path_file_ls := fs.String("path_file_ls", "", "ID de la particion")
+	path_file_ls := fs.String("path_file_ls", "", "Path de archivo en el disco")
 
 	matches := Globals.Regex.FindAllStringSubmatch(params, -1)
 
@@ -21,9 +22,9 @@ func Report(params string) {
 	parsedFlags := make(map[string]string)
 
 	for _, match := range matches {
-		flagName := match[1]                      // Flag tal cual fue escrito
-		flagValue := strings.Trim(match[2], "\"") // Quita comillas si las tiene
-
+		flagName := strings.ToLower(match[1])     // Convertir nombre a minúsculas
+		flagValue := strings.ToLower(match[2])    // Convertir valor a minúsculas si aplica
+		flagValue = strings.Trim(flagValue, "\"") // Eliminar comillas
 		// Asigna el flag en la estructura fs
 		if err := fs.Set(flagName, flagValue); err != nil {
 			fmt.Printf("Error: No se pudo establecer el flag '%s'\n", flagName)
@@ -34,42 +35,44 @@ func Report(params string) {
 
 	// Validación de campos obligatorios
 	if *name == "" || *path == "" || *id == "" {
-		fmt.Println("Error: Los parámetros '-name', '-path' y '-id' son obligatorios")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: Los parámetros '-name', '-path' y '-id' son obligatorios" + "\n"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 	if *name == "is" || *name == "file" && *path_file_ls == "" {
-		fmt.Println("Error: Los parámetros '-path_file_ls' es obligatorio")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: Los parámetros '-path_file_ls' es obligatorio" + "\n"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
-	if *name == "mbr" {
+	switch *name {
+	case "mbr":
 		Reports.CreateMBR_Report(*path, *id)
-	}
-	if *name == "disk" {
+	case "disk":
 		Reports.CreateDiskReport(*path, *id)
-	}
-	if *name == "inode" {
+	case "inode":
 		Reports.CreateInode_Report(*path, *id)
-	}
-	if *name == "block" {
-		fmt.Println("LLamando a la funcion para block")
-	}
-	if *name == "bm_inode" {
+	case "block":
+		fmt.Println("Llamando a la función para block")
+	case "bm_inode":
 		Reports.CreateBmInodeReport(*path, *id)
-	}
-	if *name == "bm_block" {
+	case "bm_block":
 		Reports.CreateBmBlockReport(*path, *id)
-	}
-	if *name == "tree" {
-		fmt.Println("LLamando a la funcion para block")
-	}
-	if *name == "sb" {
+	case "tree":
+		fmt.Println("Llamando a la función para tree")
+	case "sb":
 		Reports.CreateSbReport(*path, *id)
-	}
-	if *name == "file" {
+	case "file":
 		Reports.CreateFileReport(*path, *id, *path_file_ls)
+	case "is":
+		fmt.Println("Llamando a la función para is")
+	default:
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: Reporte no reconocido." + "\n"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
+
 	}
-	if *name == "is" {
-		fmt.Println("LLamando a la funcion para bm_block")
-	}
+
 }

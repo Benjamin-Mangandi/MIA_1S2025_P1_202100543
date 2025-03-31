@@ -2,11 +2,13 @@ package Reports
 
 import (
 	"Backend/DiskManager"
+	"Backend/Responsehandler"
 	Ext2 "Backend/Structs/ext2"
 	"Backend/Utilities"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"unsafe"
 )
 
@@ -51,21 +53,31 @@ func CreateInode_Report(path string, id string) {
 			return
 		}
 
-		if inode.I_uid == 0 {
+		// Verificar si el inodo está en uso
+		if inode.I_uid == -1 || inode.I_uid == 0 {
 			continue
 		}
+
 		dotContent += fmt.Sprintf("Inodo%d [label=<\n", i+1)
 		dotContent += "<table border='1' cellborder='1' cellspacing='0'>\n"
 		dotContent += fmt.Sprintf("<tr><td colspan='2'><b>Inodo %d</b></td></tr>\n", i+1)
 		dotContent += fmt.Sprintf("<tr><td>i_uid</td><td>%d</td></tr>\n", inode.I_uid)
+		dotContent += fmt.Sprintf("<tr><td>i_gid</td><td>%d</td></tr>\n", inode.I_gid)
 		dotContent += fmt.Sprintf("<tr><td>i_size</td><td>%d</td></tr>\n", inode.I_size)
+		i_atime := strings.TrimRight(string(inode.I_atime[:]), "\x00")
+		i_ctime := strings.TrimRight(string(inode.I_ctime[:]), "\x00")
+		i_mtime := strings.TrimRight(string(inode.I_mtime[:]), "\x00")
+		dotContent += fmt.Sprintf("<tr><td>i_atime</td><td>%s</td></tr>\n", i_atime)
+		dotContent += fmt.Sprintf("<tr><td>i_ctime</td><td>%s</td></tr>\n", i_ctime)
+		dotContent += fmt.Sprintf("<tr><td>i_mtime</td><td>%s</td></tr>\n", i_mtime)
 
 		for j, block := range inode.I_block {
 			if block != -1 {
 				dotContent += fmt.Sprintf("<tr><td>i_block_%d</td><td>%d</td></tr>\n", j+1, block)
 			}
 		}
-
+		type_ := strings.TrimRight(string(inode.I_type[:]), "\x00")
+		dotContent += fmt.Sprintf("<tr><td>i_type</td><td>%s</td></tr>\n", type_)
 		dotContent += fmt.Sprintf("<tr><td>i_perm</td><td>%s</td></tr>\n", string(inode.I_perm[:]))
 
 		dotContent += "</table>>];\n"
@@ -73,7 +85,8 @@ func CreateInode_Report(path string, id string) {
 	dotContent += "}\n"
 
 	// Guardar el código Graphviz en un archivo temporal
-	tempDotPath := "/home/benjamin/inode_report.dot"
+	tempDotPath := "/home/user/inode_report.dot"
+	tempDotPath = fixPath(tempDotPath)
 	if err := os.WriteFile(tempDotPath, []byte(dotContent), 0644); err != nil {
 		fmt.Println("Error al escribir el archivo .dot:", err)
 		return
@@ -87,5 +100,7 @@ func CreateInode_Report(path string, id string) {
 		return
 	}
 
-	fmt.Println("Reporte de inodos generado exitosamente en:", path)
+	response := strings.Repeat("-", 40) + "\n" +
+		"Reporte de inodos generado exitosamente en: " + path + "\n"
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

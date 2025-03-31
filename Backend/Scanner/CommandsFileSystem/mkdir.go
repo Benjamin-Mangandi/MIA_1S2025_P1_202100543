@@ -1,6 +1,7 @@
-package CommandsFilesFolders
+package CommandsFileSystem
 
 import (
+	"Backend/FileSystem"
 	"Backend/Globals"
 	"flag"
 	"fmt"
@@ -10,7 +11,7 @@ import (
 func Mkdir(params string) {
 	fs := flag.NewFlagSet("mkdir", flag.ContinueOnError)
 	path := fs.String("path", "", "Ruta")
-	p := fs.String("p", "false", "Creacion de carpetas padre") // Cambié "-r" a "-p" para que coincida con el parámetro correcto.
+	p := fs.String("p", "false", "Creacion de carpetas padre")
 
 	// Extraer parámetros usando Regex
 	matches := Globals.Regex.FindAllStringSubmatch(params, -1)
@@ -19,8 +20,9 @@ func Mkdir(params string) {
 	pFlagPresent := false // Variable para rastrear si -p está presente sin valor
 
 	for _, match := range matches {
-		flagName := match[1]                      // Nombre del flag
-		flagValue := strings.Trim(match[2], "\"") // Quitar comillas
+		flagName := strings.ToLower(match[1])     // fileN (ej. file1, file2, file3)
+		flagValue := strings.ToLower(match[2])    // Convertir valor a minúsculas si aplica
+		flagValue = strings.Trim(flagValue, "\"") // Eliminar comillas
 
 		if flagName == "p" && flagValue == "" {
 			pFlagPresent = true
@@ -40,19 +42,10 @@ func Mkdir(params string) {
 		_ = fs.Set("p", "true")
 	}
 
-	// Imprimir parámetros detectados para depuración
-	fmt.Println("====== Parámetros Escaneados ======")
-	for key, value := range parsedFlags {
-		fmt.Printf("%s: %s\n", key, value)
-	}
-	fmt.Println("===================================")
-
 	// Verificar que el parámetro -path sea obligatorio
 	if *path == "" {
 		fmt.Println("Error: el parametro '-path' es obligatorio")
 		return
 	}
-
-	// Verificar si -p se estableció correctamente
-	fmt.Println("Valor de -p:", *p)
+	FileSystem.Mkdir(*path, *p)
 }

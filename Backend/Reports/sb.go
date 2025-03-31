@@ -2,6 +2,7 @@ package Reports
 
 import (
 	"Backend/DiskManager"
+	"Backend/Responsehandler"
 	Ext2 "Backend/Structs/ext2"
 	"Backend/Utilities"
 	"fmt"
@@ -14,9 +15,19 @@ import (
 func CreateSbReport(path string, id string) {
 	// Buscar la partición montada
 	path = fixPath(path)
+	err := Utilities.CreateParentDirs(path)
+	if err != nil {
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error al crear las carpetas padre" + "\n"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
+		return
+	}
+
 	mountedPartition := DiskManager.GetMountedPartitionByID(id)
 	if mountedPartition.ID == "" {
-		fmt.Println("Error: No se encontró la partición montada.")
+		response := strings.Repeat("*", 30) + "\n" +
+			"Error: No se encontró la partición montada." + "\n"
+		Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 		return
 	}
 
@@ -34,9 +45,6 @@ func CreateSbReport(path string, id string) {
 		fmt.Println("Error al leer el superbloque:", err)
 		return
 	}
-
-	fmt.Println(superblock.S_mtime)
-	fmt.Println(superblock.S_umtime)
 	mtimeStr := strings.Trim(string(superblock.S_mtime[:]), "\x00")
 	var mtime string
 	if mtimeStr == "" {
@@ -117,7 +125,8 @@ digraph G {
 	)
 
 	// Guardar el código Graphviz en un archivo temporal
-	tempDotPath := "/home/benjamin/inode_report.dot"
+	tempDotPath := "/home/user/sb_report.dot"
+	tempDotPath = fixPath(tempDotPath)
 	if err := os.WriteFile(tempDotPath, []byte(dotContent), 0644); err != nil {
 		fmt.Println("Error al escribir el archivo .dot:", err)
 		return
@@ -131,6 +140,7 @@ digraph G {
 		fmt.Println("Salida del comando:", string(output))
 		return
 	}
-
-	fmt.Println("Reporte del superbloque generado exitosamente en:", path)
+	response := strings.Repeat("-", 40) + "\n" +
+		"Reporte del superbloque generado exitosamente en:" + path + "\n"
+	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

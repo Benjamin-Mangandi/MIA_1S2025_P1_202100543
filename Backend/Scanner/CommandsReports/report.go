@@ -55,7 +55,7 @@ func Report(params string) {
 	case "inode":
 		Reports.CreateInode_Report(*path, *id)
 	case "block":
-		fmt.Println("Llamando a la función para block")
+		Reports.CreateBlocksReport(*path, *id)
 	case "bm_inode":
 		Reports.CreateBmInodeReport(*path, *id)
 	case "bm_block":

@@ -142,6 +142,6 @@ func CreateDiskReport(path string, id string) {
 	}
 
 	response := strings.Repeat("-", 40) + "\n" +
-		"Reporte generado exitosamente en: " + path + "\n"
+		"Reporte del disco generado exitosamente en: " + path + "\n"
 	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

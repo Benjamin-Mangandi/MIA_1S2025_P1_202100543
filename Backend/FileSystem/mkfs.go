@@ -146,6 +146,8 @@ func createSuperblock(n int32, partition Disk.Partition) Ext2.Superblock {
 		S_block_start:       partition.Start + int32(binary.Size(Ext2.Superblock{})) + n + 3*n + n*int32(binary.Size(Ext2.Inode{})),
 		S_mtime:             mtime,
 		S_umtime:            umtime,
+		S_first_blo:         2,
+		S_fist_ino:          2,
 	}
 }
 
@@ -189,8 +191,6 @@ func create_ext2(n int32, partition Disk.Partition, newSuperblock Ext2.Superbloc
 	response := strings.Repeat("-", 40) + "\n" +
 		"SISTEMA EXT2 Creado exitosamente.\n"
 	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
-	// Imprimir el Superblock final
-	Ext2.PrintSuperblock(newSuperblock)
 }
 
 // Función auxiliar para inicializar inodos y bloques
@@ -233,6 +233,8 @@ func createRootAndUsersFile(newSuperblock Ext2.Superblock, date string, file *os
 
 	inode0.I_block[0] = 0
 	inode1.I_block[0] = 1
+	inode0.I_type[0] = '0'
+	inode1.I_type[0] = '1'
 	inode1.I_size = int32(len("1,G,root\n1,U,root,root,123\n")) // Asignar tamaño real
 
 	// Crear bloque de carpeta
@@ -243,6 +245,7 @@ func createRootAndUsersFile(newSuperblock Ext2.Superblock, date string, file *os
 	copy(folderBlock.B_content[1].B_name[:], "..")
 	folderBlock.B_content[2].B_inodo = 1
 	copy(folderBlock.B_content[2].B_name[:], "users.txt")
+	folderBlock.B_content[3].B_inodo = -1
 
 	// Crear bloque de archivo con datos
 	var fileBlock Ext2.Fileblock
@@ -283,21 +286,53 @@ func initInode(inode *Ext2.Inode, date string) {
 }
 
 func markUsedInodesAndBlocks(newSuperblock Ext2.Superblock, file *os.File) error {
-	// Lista de posiciones a marcar como ocupadas
-	positions := []int64{
-		int64(newSuperblock.S_bm_inode_start),     // Inodo raíz "/"
-		int64(newSuperblock.S_bm_inode_start + 1), // Inodo "users.txt"
-		int64(newSuperblock.S_bm_block_start),     // Bloque de la carpeta raíz
-		int64(newSuperblock.S_bm_block_start + 1), // Bloque de contenido "users.txt"
+	// Leer los bitmaps actuales en memoria
+	inodeBitmap := make([]byte, (newSuperblock.S_inodes_count+7)/8) // Redondeamos al byte más cercano
+	blockBitmap := make([]byte, (newSuperblock.S_blocks_count+7)/8) // Redondeamos al byte más cercano
+
+	// Leer los bitmaps desde el archivo
+	if _, err := file.ReadAt(inodeBitmap, int64(newSuperblock.S_bm_inode_start)); err != nil {
+		fmt.Println("Error al leer bitmap de inodos:", err)
+		return err
+	}
+	if _, err := file.ReadAt(blockBitmap, int64(newSuperblock.S_bm_block_start)); err != nil {
+		fmt.Println("Error al leer bitmap de bloques:", err)
+		return err
 	}
 
-	// Marcar como '1' en cada posición
-	for _, pos := range positions {
-		_, err := file.WriteAt([]byte{'1'}, pos)
-		if err != nil {
-			fmt.Println("Error al marcar bitmaps de inodos/bloques:", err)
-			return err
-		}
+	// Función auxiliar para marcar un bit en una posición específica
+	markBit := func(bitmap []byte, pos int) {
+		bytePos := pos / 8               // Encuentra el byte correspondiente
+		bitPos := pos % 8                // Encuentra la posición del bit dentro del byte
+		bitmap[bytePos] |= (1 << bitPos) // Marca el bit (ponlo en 1)
+	}
+
+	// Marcar los inodos usados
+	inodePositions := []int{
+		0, // Inodo raíz "/"
+		1, // Inodo "users.txt"
+	}
+	for _, pos := range inodePositions {
+		markBit(inodeBitmap, pos)
+	}
+
+	// Marcar los bloques usados
+	blockPositions := []int{
+		0, // Bloque de la carpeta raíz
+		1, // Bloque de contenido "users.txt"
+	}
+	for _, pos := range blockPositions {
+		markBit(blockBitmap, pos)
+	}
+
+	// Escribir los bitmaps modificados de vuelta al archivo
+	if _, err := file.WriteAt(inodeBitmap, int64(newSuperblock.S_bm_inode_start)); err != nil {
+		fmt.Println("Error al escribir bitmap de inodos:", err)
+		return err
+	}
+	if _, err := file.WriteAt(blockBitmap, int64(newSuperblock.S_bm_block_start)); err != nil {
+		fmt.Println("Error al escribir bitmap de bloques:", err)
+		return err
 	}
 
 	return nil

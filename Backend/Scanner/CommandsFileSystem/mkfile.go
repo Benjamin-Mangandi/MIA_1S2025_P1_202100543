@@ -1,6 +1,7 @@
-package CommandsFilesFolders
+package CommandsFileSystem
 
 import (
+	"Backend/FileSystem"
 	"Backend/Globals"
 	"flag"
 	"fmt"
@@ -21,8 +22,9 @@ func MkFile(params string) {
 	rFlagPresent := false // Variable para rastrear si -r está presente sin valor
 
 	for _, match := range matches {
-		flagName := match[1]                      // Nombre del flag
-		flagValue := strings.Trim(match[2], "\"") // Quitar comillas
+		flagName := strings.ToLower(match[1])     // fileN (ej. file1, file2, file3)
+		flagValue := strings.ToLower(match[2])    // Convertir valor a minúsculas si aplica
+		flagValue = strings.Trim(flagValue, "\"") // Eliminar comillas
 
 		if flagName == "r" && flagValue == "" {
 			rFlagPresent = true
@@ -42,23 +44,10 @@ func MkFile(params string) {
 		_ = fs.Set("r", "true")
 	}
 
-	// Imprimir parámetros detectados para depuración
-	fmt.Println("====== Parámetros Escaneados ======")
-	for key, value := range parsedFlags {
-		fmt.Printf("%s: %s\n", key, value)
-	}
-	fmt.Println("===================================")
-
 	// Verificar que el parámetro -path sea obligatorio
 	if *path == "" {
 		fmt.Println("Error: el parámetro '-path' es obligatorio")
 		return
 	}
-
-	// Verificar si los parámetros se establecieron correctamente
-	fmt.Println("Valores:")
-	fmt.Println("Path:", *path)
-	fmt.Println("Size:", *size)
-	fmt.Println("R:", *r)
-	fmt.Println("Cont:", *cont)
+	FileSystem.Mkfile(*path, *r, *size, *cont)
 }

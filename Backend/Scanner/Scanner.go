@@ -4,7 +4,6 @@ import (
 	"Backend/Responsehandler"
 	"Backend/Scanner/CommandsDisk"
 	"Backend/Scanner/CommandsFileSystem"
-	"Backend/Scanner/CommandsFilesFolders"
 	"Backend/Scanner/CommandsReports"
 	"Backend/Scanner/CommandsUsers"
 	"fmt"
@@ -78,9 +77,9 @@ func AnalyzeCommand(command string, params string) {
 	case strings.EqualFold(command, "chgrp"):
 		CommandsUsers.Chgrp(params)
 	case strings.EqualFold(command, "mkfile"):
-		CommandsFilesFolders.MkFile(params)
+		CommandsFileSystem.MkFile(params)
 	case strings.EqualFold(command, "mkdir"):
-		CommandsFilesFolders.Mkdir(params)
+		CommandsFileSystem.Mkdir(params)
 	default:
 		response := strings.Repeat("*", 30) + "\n" +
 			"Error: Comando inválido o no encontrado: " + string(command)

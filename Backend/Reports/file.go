@@ -66,7 +66,7 @@ func CreateFileReport(path string, id string, filePath string) {
 		fmt.Println("Error al escribir el archivo de reporte:", err)
 		return
 	}
-	response := strings.Repeat("*", 30) + "\n" +
-		"Reporte creado exitosamente en:" + path + "\n"
+	response := strings.Repeat("-", 40) + "\n" +
+		"Reporte File creado exitosamente en:" + path + "\n"
 	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }

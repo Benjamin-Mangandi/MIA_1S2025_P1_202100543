@@ -119,7 +119,7 @@ func CreateMBR_Report(path string, id string) {
 		return
 	}
 	response := strings.Repeat("-", 40) + "\n" +
-		"Reporte generado exitosamente en: " + path + "\n"
+		"Reporte del mbr generado exitosamente en: " + path + "\n"
 	Responsehandler.AppendContent(&Responsehandler.GlobalResponse, response)
 }
 
